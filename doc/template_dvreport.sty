@@ -1,0 +1,52 @@
+% Required packages
+\usepackage[utf8]{inputenc} % UTF-8 encoding
+\usepackage[T1]{fontenc}  % Font encoding
+\usepackage{lmodern}
+\usepackage{graphicx}     % For including images
+\usepackage{geometry}     % For page layout
+\usepackage{xcolor}       % For custom colors
+\usepackage{titlesec}     % For title formatting
+\usepackage{fancyhdr}     % For headers and footers
+\usepackage{tcolorbox}    % For colored boxes
+\usepackage{hyperref}
+\usepackage{xspace}    	 % For new commands
+\usepackage{tocloft}
+\usepackage[longend]{algorithm2e}
+\usepackage{textgreek}
+\usepackage{mathtools}
+
+% Page layout
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+% Define colors
+\definecolor{graybox}{rgb}{0.9,0.9,0.9}
+
+% Title formatting
+\titleformat{\section}{\large\bfseries\sffamily}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\sffamily}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\bfseries\sffamily}{\thesubsubsection}{1em}{}
+\titleformat{\paragraph}[runin]{\normalfont\bfseries\sffamily}{\theparagraph.}{1em}{}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\includegraphics[width=2cm]{logo.png}}
+\rhead{\textbf{Towards Post-Quantum Ethereum Distributed Validators}}
+\cfoot{\thepage}
+
+% Define colorlinks
+\hypersetup{
+    colorlinks = true,
+	citecolor = {cyan},
+	linkcolor = {magenta},
+}
+
+% Algorithm boxes
+\setcounter{algocf}{1}
+\newtcolorbox{myalgorithm}[2][]{%
+    fonttitle=\bfseries,
+    title=\textbf{Algorithm \arabic{algocf}:~#2},
+    #1,
+    before upper={\begin{algorithm}[H]},
+    after upper={\end{algorithm}}
+    }

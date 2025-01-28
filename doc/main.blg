@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: alpha.bst
+Database file #1: bib.bib
+Warning--empty school in 10.5555/909000
+You've used 11 entries,
+            2543 wiz_defined-function locations,
+            625 strings with 6479 characters,
+and the built_in function-call counts, 4647 in all, are:
+= -- 476
+> -- 264
+< -- 8
++ -- 94
+- -- 92
+* -- 308
+:= -- 787
+add.period$ -- 36
+call.type$ -- 11
+change.case$ -- 74
+chr.to.int$ -- 9
+cite$ -- 12
+duplicate$ -- 179
+empty$ -- 290
+format.name$ -- 103
+if$ -- 958
+int.to.chr$ -- 3
+int.to.str$ -- 0
+missing$ -- 3
+newline$ -- 59
+num.names$ -- 37
+pop$ -- 74
+preamble$ -- 1
+purify$ -- 86
+quote$ -- 0
+skip$ -- 169
+stack$ -- 0
+substring$ -- 159
+swap$ -- 48
+text.length$ -- 8
+text.prefix$ -- 1
+top$ -- 0
+type$ -- 88
+warning$ -- 1
+while$ -- 41
+width$ -- 15
+write$ -- 153
+(There was 1 warning)

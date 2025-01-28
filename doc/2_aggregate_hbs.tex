@@ -1,0 +1,44 @@
+\section{Aggregate Hash-Based Signatures using SNARKs}
+\subsection{Hash-based signatures}
+As their name suggests, hash-based signature schemes rely on hash functions as their core primitive.
+In contrast to public key cryptosystems, there is no strong evidence that symmetric cryptography, including hash functions, would be significantly impacted by quantum computers.
+Although recommendations on symmetric cryptography may vary between cybersecurity agencies\footnote{ANSSI recommends at least the same security as \textsf{AES-256} and \textsf{SHA2-384} for block ciphers and hash functions, respectively, whereas NIST, NCSC and BSI recommend \textsf{AES-128} and \textsf{SHA-256}.}, hash-based signatures are seen as a conservative choice for post-quantum security given their well-understood security.
+%Although quantum computers theoretically improve the birthday attack complexity from $\mathcal{O}(\sqrt{n})$ to $\mathcal{O}(n^{1/3})$, Bernstein highlighted that it would not be the case in practice as it does not take into account the practical costs of quantum collision search~\cite{quant_hash_collision}.
+%Because hash functions are well understood now being are part of the cryptographic landscape for half a century
+The classical approach to build hash-based signatures is to combine many one-time signature (OTS) key pairs into a Merkle tree~\cite{10.5555/909000} whose root serves as the many-time public key.
+To provide a concrete example, we hereafter introduce the Winternitz OTS (\WOTS) scheme. 
+%To provide a concrete instantiation, we hereafter introduce the \XMSS scheme which is based on Winternitz OTS (\WOTS).
+
+\newpage
+\paragraph{Winternitz OTS.}
+\WOTS is parameterized by two values:
+\begin{itemize}
+	\item the Winternitz parameter $w$, being a power of 2.% (usually selected from $\{2,4,8\}$).
+	\item a $n$-bit hash function $H$ such that $n=vw$
+\end{itemize}
+To generate an OTS key pair, one randomly generates $v$ $n$-bit secret keys  $sk_0,\cdots,sk_{v-1}$ and derives the corresponding public keys using an hash chain of length $2^w-1$ (\textit{i.e.}, $pk_i = H^{2^w-1}(sk_i)$).
+To sign a message $m$, a checksum over $m$ is appended to it before hashing.
+The $n$-bit output is then divided into $v$ $w$-bit chunks $c_0,\cdots,c_{v-1}$ and the signature consists of $\sigma = \sigma_0, \cdots, \sigma_{v-1}$ where $\sigma_i = H^{c_i}(sk_i)$. %for $i \in \{0,\cdots,v-1\}$.
+To verify a signature, one checks that $H^{w-1-c_i}(\sigma_i) = pk_i$ for $i \in \{0,\cdots,v-1\}$.
+%\footnote{Practical \WOTS deployments actually do not generate the private keys randomly but rely on a pseudorandom function (PRF) with a secret seed instead to reduce memory storage requirements.}
+
+%To sign the $i$th message, the signer uses the $i$th OTS secret key and includes the corresponding public key along with its Merkle path in the signature.
+%This introduces the concept statefulness: because security depends on the unique usage of each OTS key pair, it is crucial to keep track of which keys have already been used.
+%As a corollary, this state management also introduces the concept of lifetime since once all the OTS keys have been used, it is not possible to sign anymore.
+
+\paragraph{Merkle tree.}
+To build a many-time signature scheme from \WOTS, one can combine multiple key pairs with a binary tree where each node is the hash of its children, commonly referred to as Merkle tree.
+For a height parameter $h$, such a tree is built from $2^h$ leaves $l_0,\cdots,l_{2^h-1}$,  each being the hash of a \WOTS public key (\textit{i.e.}, $l_i = H(pk_{i_0}, \cdots, pk_{i_{v-1}})$).
+The root constitutes the many-time public key and commits to all OTS public keys.
+Note that to reduce memory requirements in practice, it is recommended to generate the \WOTS secret keys using a pseudorandom function (PRF) rather than using a random number generator~\cite{RFC8391}.
+To sign the $i$th message, the signer uses the $i$th OTS secret key and includes the Merkle path of the corresponding public key in the signature.
+To verify the signature, the verifier computes the public key from \WOTS signature and then, thanks to the Merkle path, verifies that its digest is indeed the leaf at position $i$.
+This introduces the concept statefulness: because security depends on the unique usage of each OTS key pair, it is crucial to keep track of which keys have already been used.
+
+\subsection{SNARK-based aggregation}
+The idea behind SNARK-based aggregation is for an aggregator to turn individual signatures, possibly over different messages, into a SNARK proof attesting their validity.
+Note that this principle can be used to thresholdize a signature scheme: given a $k$-of-$n$ setting, the aggregator can generate a proof attesting that it verified $k$ distinct signatures over the same message and that signers are part of the quorum.  
+A valuable feature of this approach is its non-interactiveness: the aggregator only needs to collect individual signatures in order to compute the proof, without any additional communication.
+Combining such a construction with hash-based signatures has been first explored by Khaburzaniya \textit{et al.}~\cite{agg-hash-based-starks}, using \WOTS with 1-bit chunks (instantiated with the \textsf{Rescue-Prime} hash function) along with STARKs.
+To complement this research, the work from Drake \textit{et al.}~\cite{cryptoeprint:2025/055} does not focus on a specific hash-based signature scheme but explores a variety of tradeoffs by introducing a generalized variant of \XMSS~\cite{10.1007/978-3-642-25405-5_8} and providing security proofs that hold for all its instantiations.
+Notably, their security proofs do not model hash functions as random oracles and rely on standard model properties instead, such as preimage/collision resistance, providing concrete security targets. 

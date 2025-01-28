@@ -1,0 +1,56 @@
+% LaTeX Template for a Technical Report
+\documentclass[a4paper,11pt]{article}
+\usepackage{template_dvreport}
+
+\input{macros}
+
+% Document starts here
+\begin{document}
+
+% Title page
+\begin{titlepage}
+    \centering
+    % Company logo
+    \includegraphics[width=0.3\textwidth]{logo.png}\\[1cm]
+
+    % Report title
+    {\Huge\bfseries\sffamily Towards Post-Quantum Distributed Validators on Ethereum}\\[1cm]
+
+    % Grey box for the abstract
+    \begin{tcolorbox}[colback=graybox, colframe=white, rounded corners]
+        \textbf{Abstract:}
+        With recent advances in quantum computing, post-quantum cryptographic algorithms are being actively deployed in real-world applications.
+        For Ethereum, a transition to post-quantum cryptography would require replacing many primitives, including the \textsf{BLS12-381} signature schemes used by validators on the beacon chain.
+Because \BLS leverages its bilinear pairing property to aggregate multiple validator signatures, enabling both performance improvements and
+space savings, its replacement presents a particular challenge.
+Furthermore, the bilinearity of the pairing function also enables straightforward threshold signatures, which are fundamental to distributed validator solutions.
+The objective of this report is to review the current state of post-quantum signature algorithms and identify those most suitable for the Ethereum beacon chain, particularly focusing on their support for signature aggregation and threshold functionality.
+    \end{tcolorbox}
+
+	{
+		\hypersetup{linkcolor=black}
+		\tableofcontents
+	}
+	
+	\vfill
+    % Author and date
+    %{\large Prepared by: Alexandre Adomnic\u{a}i}\\
+    {\large \today}
+\end{titlepage}
+
+\input{1_intro}
+
+\input{2_aggregate_hbs}
+
+\input{3_threshold_xmss}
+
+% Main content
+
+
+
+
+\bibliographystyle{alpha}
+\bibliography{bib}
+
+
+\end{document}

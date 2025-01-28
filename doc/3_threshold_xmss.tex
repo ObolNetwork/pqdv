@@ -1,0 +1,61 @@
+\section{Thresholdizing XMSS}
+The downside of building a threshold hash-based signature by leveraging a SNARK system as mentioned above is that the aggregation of threshold signatures would not be straightforward (since threshold signatures are proofs instead of raw hash-based signatures).
+In the case of the Beacon chain where threshold signatures occur \textit{before} aggregation duties, it is imperative for distributed validator middlewares to output signatures that can be aggregated according to the protocol.
+Therefore, this section focuses on constructions which lead to threshold Winternitz signatures that are indistinguishable from non-threshold ones, as in \BLS.
+\subsection{Distributed hash-based signatures with Boolean shares.}
+Distributed variants of hash-based signatures, including \XMSS, have been explored by Kelsey, Lang and Lucks in~\cite{cryptoeprint:2022/241} where they introduce $n$-of-$n$ and $k$-of-$n$ threshold signature schemes which rely on Boolean shares.
+%\paragraph{$n$-of-$n$ setting.}
+For the $n$-of-$n$ setting, a trusted dealer starts from an existing Merkle tree and splits each \WOTS secret key $\mathsf{sk_i}$ by generating $n$ random values $\mathsf{r}^0_i,\cdots,\mathsf{r}^{n-1}_i$ to compute $\mathsf{r}^h_i = \mathsf{r}^0_i \oplus \mathsf{r}^1_i \oplus \cdots \oplus \mathsf{r}^{n-1}_i \oplus \mathsf{sk}_i$.
+This introduces an additional party called the \textit{helper} whose role is to store and provide the relevant helper shares whenever required.
+That way, to produce a \WOTS using for $\mathsf{sk}_i$, each party can sign independently using its Boolean key share assuming the aggregator has access to the helper share $r^h_i$.
+Note that the trusted dealer not only has to produce helper shares for \WOTS secret keys, but also for each Merkle paths, inducing high memory requirement on the helper.
+%\mto generate random values $n$ random values and to exclusive-OR them
+To minimize memory usage for the parties, the key shares are actually generated pseudorandomly using a \PRF along with a secret seed as detailed in Algorithm~\ref{alg:bool_split_n}.
+To turn their $n$-of-$n$ scheme into a $k$-of-$n$ threshold scheme, they propose to instantiate a Merkle tree that contains keys for all possible $\binom{n}{k}$ quorums.
+Beyond complexity, this increases the height of the Merkle tree and hence the signature size as well as the memory requirements for the helper.
+Because their designs are incompatible with distributed key generation (DKG) methods, we investigate other solutions instead. 
+
+\begin{myalgorithm}{Split a Merkle tree of WOTS keys into distributed key shares for $n$-of-$n$ signatures, according to~\cite{cryptoeprint:2022/241}.}
+Input parameters:
+\begin{itemize}
+\itemsep-.5em
+\item Merkle tree built out of $2^h$ \WOTS secret keys $\mathsf{sk}_0,\cdots,\mathsf{sk}_{2^h-1}$
+\item number of parties $n$
+\end{itemize}
+Output parameters:
+\vspace{-.75em}
+\begin{itemize}
+\itemsep-.5em
+\item each party gets its $\mathsf{seed}_i$
+\item helper gets $\mathsf{sk}^h_{j}$ and $\mathsf{path}^h_{j}$ for $j \in \{0,\cdots,2^h-1\}$
+\end{itemize}
+
+\For(){$i=0$ \KwTo $n$} {
+	$\mathsf{seed}_i \leftarrow $ \tcp*[f]{picks a secret seed for each party}
+}
+
+%\For(\tcp*[f]{for each leaf}){$j=0$ \KwTo $2^h$} {
+\For(){$j=0$ \KwTo $2^h$} {
+	$\mathsf{sk}^h_j \leftarrow \mathsf{sk}_j$ \tcp*[f]{WOTS key helper shares}\\
+	$\mathsf{path}^h_j \leftarrow \mathsf{path}_j$ \tcp*[f]{Merkle path helper shares}\\
+	\For(){$i=0$ \KwTo $n$} {
+		$\mathsf{sk}^h_j \leftarrow \mathsf{sk}^h_j \oplus \mathsf{PRF}_{\mathsf{seed}_i}(\mathsf{sk}_j)$\\
+		$\mathsf{path}^h_j \leftarrow \mathsf{path}^h_j \oplus \mathsf{PRF}_{\mathsf{seed}_i}(\mathsf{path}_j)$\\
+	}
+
+}
+\label{alg:bool_split_n}
+\end{myalgorithm}
+
+\subsection{Leveraging Shamir Secret Sharing}
+Turning \WOTS into a threshold scheme presents no significant challenges as one can simply apply a secret sharing scheme on the secret keys so that messages can be partially signed non-interactively.
+However, the difficulty arises when Merkle trees come into play: computing Merkle paths from secret key shares requires to process all hash function calls in a multi-party computation (MPC) fashion.
+This would be highly impractical in low latency scenarios such as performing validator duties on Ethereum, as the time to produce a threshold signature could not fit within an epoch (see \textit{e.g.} the work from Cozzo and Smart~\cite{cryptoeprint:2019/1060} which estimates around 85 minutes to compute a threshold \textsf{SPHINCS+} signature with \textsf{SHA-3} as the underlying hash function).
+A possible workaround is to store Merkle paths along with \WOTS secret keys so that it is not necessary to recompute them on-the-fly.
+
+
+
+Bear in mind that avoiding any MPC hash invocation implies that \WOTS secret keys cannot be generated pseudo-randomly from a secret seed shared amongst participants, further increasing memory consumption.
+ 
+Still, even if all parties store their own \WOTS secret key shares and corresponding Merkle paths, they cannot sign non-interactively.
+Indeed, \XMSS not being a deterministic signature scheme, the signers have to agree on a random number to be included in the randomized message digest calculation.
