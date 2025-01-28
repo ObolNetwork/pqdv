@@ -1,9 +1,0 @@
-\contentsline {section}{\numberline {1}Introduction}{1}{section.1}%
-\contentsline {section}{\numberline {2}Aggregate Hash-Based Signatures using SNARKs}{1}{section.2}%
-\contentsline {subsection}{\numberline {2.1}Hash-based signatures}{1}{subsection.2.1}%
-\contentsline {paragraph}{Winternitz OTS.}{2}{paragraph*.1}%
-\contentsline {paragraph}{Merkle tree.}{2}{paragraph*.2}%
-\contentsline {subsection}{\numberline {2.2}SNARK-based aggregation}{2}{subsection.2.2}%
-\contentsline {section}{\numberline {3}Thresholdizing XMSS}{2}{section.3}%
-\contentsline {subsection}{\numberline {3.1}Distributed hash-based signatures with Boolean shares.}{3}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}Leveraging Shamir Secret Sharing}{3}{subsection.3.2}%
