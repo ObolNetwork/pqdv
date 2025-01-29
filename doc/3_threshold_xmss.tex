@@ -19,28 +19,39 @@ Because their designs are incompatible with distributed key generation (DKG) met
 Input parameters:
 \begin{itemize}
 \itemsep-.5em
-\item Merkle tree built out of $2^h$ \WOTS secret keys $\mathsf{sk}_0,\cdots,\mathsf{sk}_{2^h-1}$
-\item number of parties $n$
+\item Merkle tree built out of a $n$-bit hash function $H$ and $2^h$ \WOTS secret keys $\mathsf{sk}_0,\cdots,\mathsf{sk}_{2^h-1}$ to sign $n=vw$-bit messages (\textit{i.e.}, $\mathsf{sk}_i = (\mathsf{sk}_{i,0}, \cdots, \mathsf{sk}_{i,v-1})$).
+\item A pseudorandom function $\mathsf{PRF}_K(x,l)$ parametrized by a $k$-bit key $K$ which takes as input a seed $x$ along with the output bit length $l$.
+\item A set of distributed parties $\mathcal{P}$.
 \end{itemize}
+
 Output parameters:
 \vspace{-.75em}
 \begin{itemize}
 \itemsep-.5em
-\item each party gets its $\mathsf{seed}_i$
-\item helper gets $\mathsf{sk}^h_{j}$ and $\mathsf{path}^h_{j}$ for $j \in \{0,\cdots,2^h-1\}$
+\item Secret keys $\mathsf{key}_p$ for each party $p \in \mathcal{P}$.
+\item Helper shares $\mathsf{sk}^h_{i,j}$ and $\mathsf{path}^h_{i}$ for $i \in \{0,\cdots,2^h-1\}$ and $j \in \{0, \cdots, v-1\}$.
 \end{itemize}
 
-\For(){$i=0$ \KwTo $n$} {
-	$\mathsf{seed}_i \leftarrow $ \tcp*[f]{picks a secret seed for each party}
+\ForEach(\tcp*[f]{picks secrets at random for each party}){$p \in \mathcal{P}$} {
+	$\mathsf{key}_p \xleftarrow[]{\$} \{0,1\}^k $ 
 }
 
 %\For(\tcp*[f]{for each leaf}){$j=0$ \KwTo $2^h$} {
-\For(){$j=0$ \KwTo $2^h$} {
-	$\mathsf{sk}^h_j \leftarrow \mathsf{sk}_j$ \tcp*[f]{WOTS key helper shares}\\
-	$\mathsf{path}^h_j \leftarrow \mathsf{path}_j$ \tcp*[f]{Merkle path helper shares}\\
-	\For(){$i=0$ \KwTo $n$} {
-		$\mathsf{sk}^h_j \leftarrow \mathsf{sk}^h_j \oplus \mathsf{PRF}_{\mathsf{seed}_i}(\mathsf{sk}_j)$\\
-		$\mathsf{path}^h_j \leftarrow \mathsf{path}^h_j \oplus \mathsf{PRF}_{\mathsf{seed}_i}(\mathsf{path}_j)$\\
+\For(\tcp*[f]{builds Merkle path helper shares}){$i=0$ \KwTo $2^h-1$} {
+	$\mathsf{path}^h_i \leftarrow \mathsf{path}_i$\\
+	\ForEach(){$p \in \mathcal{P}$} {
+		$\mathsf{path}^h_i \leftarrow \mathsf{path}^h_i \oplus \mathsf{PRF}_{\mathsf{key}_p}\big((\mathsf{domain_{path}}, i), nh\big)$\\
+	}
+}
+	
+\For(\tcp*[f]{builds WOTS key helper shares}){$i=0$ \KwTo $2^h-1$} {
+	\For(\tcp*[f]{for each secret key component}){$j=0$ \KwTo $v-1$} {
+		\For(\tcp*[f]{for each w-bit chunk to sign\space}){$c=0$ \KwTo $2^w-1$} {
+		$\mathsf{sk}^h_{i,j}[c] \leftarrow H^c(\mathsf{sk}_{i,j})$ \\
+		\ForEach(){$p \in \mathcal{P}$} {
+			$\mathsf{sk}^h_{i,j}[c] \leftarrow \mathsf{sk}^h_{i,j}[c] \oplus \mathsf{PRF}_{\mathsf{key}_p}\big((\mathsf{domain_{key}}, i, j, c), n\big)$\\
+			}
+		}
 	}
 
 }
