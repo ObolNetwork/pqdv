@@ -18,7 +18,7 @@ This allows to build efficient distributed validator solutions, such as the \tex
 %In this configuration, the validator client is in charge of signing duties while the middleware  
 %Interestingly in that case threshold signatures operate in the shades, without the knowledge of the upstream and downstream clients.
 However, because \BLS is based on elliptic curve pairing, it would not provide enough security against quantum adversaries.
-As a response, the Ethereum foundation recently introduced a family of hash-based signature schemes as post-quantum atlernatives to \BLS~\cite{cryptoeprint:2025/055}.
+To address this concern, the Ethereum foundation recently introduced a family of hash-based signature schemes as post-quantum atlernatives to \BLS~\cite{cryptoeprint:2025/055}.
 The main idea behind their design is to aggregate hash-based signatures using post-quantum succinct non-interactively argument of knowledge (pqSNARK) systems.%, an approach which has already been explored in a previous work~\cite{agg-hash-based-starks}.
 While this seems to be a promising alternative, it might have considerable impacts on distributed validators solutions which currently take advantage of the homomorphic properties from \BLS.
 The goal of this document is to identify the challenges that could arise from such a transition and discuss the potential solutions to address them.
