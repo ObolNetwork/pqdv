@@ -43,10 +43,20 @@
 
 % Algorithm boxes
 \setcounter{algocf}{1}
-\newtcolorbox{myalgorithm}[2][]{%
-    fonttitle=\bfseries,
-    title=\textbf{Algorithm \arabic{algocf}:~#2},
-    #1,
-    before upper={\begin{algorithm}[H]},
-    after upper={\end{algorithm}}
-    }
+%\newtcolorbox{myalgorithm}[2][]{%
+%    float=htbp, % This makes tcolorbox behave like a floating environment
+%    fonttitle=\bfseries,
+%    title=\textbf{Algorithm \arabic{algocf}:~#2},
+%    #1,
+%    before upper={\begin{algorithm}},
+%    after upper={\end{algorithm}}
+%    }
+
+
+\newtcolorbox{algostyle}[1][]{%
+    colback=gray!10, % Light gray background
+    colframe=black, % Black border
+    boxrule=1pt, % Thin border
+    rounded corners,
+    #1
+}

@@ -8,15 +8,21 @@ Distributed variants of hash-based signatures, including \XMSS, have been explor
 For the $n$-of-$n$ setting, a trusted dealer starts from an existing Merkle tree and splits each \WOTS secret key $\mathsf{sk_i}$ by generating $n$ random values $\mathsf{r}^0_i,\cdots,\mathsf{r}^{n-1}_i$ to compute $\mathsf{r}^h_i = \mathsf{r}^0_i \oplus \mathsf{r}^1_i \oplus \cdots \oplus \mathsf{r}^{n-1}_i \oplus \mathsf{sk}_i$.
 This introduces an additional party called the \textit{helper} whose role is to store and provide the relevant helper shares whenever required.
 That way, to produce a \WOTS using for $\mathsf{sk}_i$, each party can sign independently using its Boolean key share assuming the aggregator has access to the helper share $r^h_i$.
-Note that the trusted dealer not only has to produce helper shares for \WOTS secret keys, but also for each Merkle paths, inducing high memory requirement on the helper.
+Note that it has to be done for each component of the secret key: assuming a \WOTS scheme to sign $n=vw$-bit messages, it means that each \WOTS key requires $v2^w-1$ helper shares.
+Furthermore, the trusted dealer also needs to provide the helper with  shares for each Merkle paths, leading to high memory requirement for the helper overall.
 %\mto generate random values $n$ random values and to exclusive-OR them
-To minimize memory usage for the parties, the key shares are actually generated pseudorandomly using a \PRF along with a secret seed as detailed in Algorithm~\ref{alg:bool_split_n}.
+To minimize memory usage for the parties, the key shares are actually generated pseudorandomly using a \PRF as detailed in Algorithm~\ref{alg:bool_split_n}.
 To turn their $n$-of-$n$ scheme into a $k$-of-$n$ threshold scheme, they propose to instantiate a Merkle tree that contains keys for all possible $\binom{n}{k}$ quorums.
 Beyond complexity, this increases the height of the Merkle tree and hence the signature size as well as the memory requirements for the helper.
 Because their designs are incompatible with distributed key generation (DKG) methods, we investigate other solutions instead. 
 
-\begin{myalgorithm}{Split a Merkle tree of WOTS keys into distributed key shares for $n$-of-$n$ signatures, according to~\cite{cryptoeprint:2022/241}.}
+%\begin{myalgorithm}{Split a Merkle tree of WOTS keys into distributed key shares for $n$-of-$n$ signatures, according to~\cite{cryptoeprint:2022/241}.}
+
+\begin{algorithm}[htbp]
+    \caption{Split a Merkle tree of \WOTS keys into distributed key shares for $n$-of-$n$ signatures, according to~\cite{cryptoeprint:2022/241}.}
+    \begin{algostyle} % Apply styling box inside
 Input parameters:
+\vspace{-.75em}
 \begin{itemize}
 \itemsep-.5em
 \item Merkle tree built out of a $n$-bit hash function $H$ and $2^h$ \WOTS secret keys $\mathsf{sk}_0,\cdots,\mathsf{sk}_{2^h-1}$ to sign $n=vw$-bit messages (\textit{i.e.}, $\mathsf{sk}_i = (\mathsf{sk}_{i,0}, \cdots, \mathsf{sk}_{i,v-1})$).
@@ -32,31 +38,35 @@ Output parameters:
 \item Helper shares $\mathsf{sk}^h_{i,j}$ and $\mathsf{path}^h_{i}$ for $i \in \{0,\cdots,2^h-1\}$ and $j \in \{0, \cdots, v-1\}$.
 \end{itemize}
 
-\ForEach(\tcp*[f]{picks secrets at random for each party}){$p \in \mathcal{P}$} {
+\tcp{picks secrets at random for each party}
+\ForEach(){$p \in \mathcal{P}$} {
 	$\mathsf{key}_p \xleftarrow[]{\$} \{0,1\}^k $ 
-}
+}\vspace{1em}
 
 %\For(\tcp*[f]{for each leaf}){$j=0$ \KwTo $2^h$} {
-\For(\tcp*[f]{builds Merkle path helper shares}){$i=0$ \KwTo $2^h-1$} {
+\tcp{builds Merkle path helper shares}
+\For(){$i=0$ \KwTo $2^h-1$} {
 	$\mathsf{path}^h_i \leftarrow \mathsf{path}_i$\\
 	\ForEach(){$p \in \mathcal{P}$} {
-		$\mathsf{path}^h_i \leftarrow \mathsf{path}^h_i \oplus \mathsf{PRF}_{\mathsf{key}_p}\big((\mathsf{domain_{path}}, i), nh\big)$\\
+		$\mathsf{path}^h_i \leftarrow \mathsf{path}^h_i \oplus \mathsf{PRF}_{\mathsf{key}_p}\big((\mathsf{domain_{path}}, i), nh\big)$
 	}
-}
+}\vspace{1em}
 	
-\For(\tcp*[f]{builds WOTS key helper shares}){$i=0$ \KwTo $2^h-1$} {
-	\For(\tcp*[f]{for each secret key component}){$j=0$ \KwTo $v-1$} {
-		\For(\tcp*[f]{for each w-bit chunk to sign\space}){$c=0$ \KwTo $2^w-1$} {
+\tcp{builds WOTS key helper shares}
+\For(\tcp*[f]{for each WOTS secret key}){$i=0$ \KwTo $2^h-1$} {
+	\For(\tcp*[f]{for each key component}){$j=0$ \KwTo $v-1$} {
+		\For(\tcp*[f]{for each w-bit chunk}){$c=0$ \KwTo $2^w-1$} {
 		$\mathsf{sk}^h_{i,j}[c] \leftarrow H^c(\mathsf{sk}_{i,j})$ \\
 		\ForEach(){$p \in \mathcal{P}$} {
-			$\mathsf{sk}^h_{i,j}[c] \leftarrow \mathsf{sk}^h_{i,j}[c] \oplus \mathsf{PRF}_{\mathsf{key}_p}\big((\mathsf{domain_{key}}, i, j, c), n\big)$\\
+			$\mathsf{sk}^h_{i,j}[c] \leftarrow \mathsf{sk}^h_{i,j}[c] \oplus \mathsf{PRF}_{\mathsf{key}_p}\big((\mathsf{domain_{key}}, i, j, c), n\big)$
 			}
 		}
 	}
 
 }
 \label{alg:bool_split_n}
-\end{myalgorithm}
+\end{algostyle}
+\end{algorithm}
 
 \subsection{Leveraging Shamir Secret Sharing}
 Turning \WOTS into a threshold scheme presents no significant challenges as one can simply apply a secret sharing scheme on the secret keys so that messages can be partially signed non-interactively.
