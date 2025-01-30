@@ -1,4 +1,4 @@
-\section{Thresholdizing XMSS}
+\section{Towards threshold XMSS}
 The downside of building a threshold hash-based signature by leveraging a SNARK system as mentioned above is that the aggregation of threshold signatures would not be straightforward (since threshold signatures are proofs instead of raw hash-based signatures).
 In the case of the Beacon chain where threshold signatures occur \textit{before} aggregation duties, it is imperative for distributed validator middlewares to output signatures that can be aggregated according to the protocol.
 Therefore, this section focuses on constructions which lead to threshold Winternitz signatures that are indistinguishable from non-threshold ones, as in \BLS.
@@ -68,15 +68,21 @@ Output parameters:
 \end{algostyle}
 \end{algorithm}
 
-\subsection{Leveraging Shamir Secret Sharing}
-Turning \WOTS into a threshold scheme presents no significant challenges as one can simply apply a secret sharing scheme on the secret keys so that messages can be partially signed non-interactively.
-However, the difficulty arises when Merkle trees come into play: computing Merkle paths from secret key shares requires to process all hash function calls in a multi-party computation (MPC) fashion.
-This would be highly impractical in low latency scenarios such as performing validator duties on Ethereum, as the time to produce a threshold signature could not fit within an epoch (see \textit{e.g.} the work from Cozzo and Smart~\cite{cryptoeprint:2019/1060} which estimates around 85 minutes to compute a threshold \textsf{SPHINCS+} signature with \textsf{SHA-3} as the underlying hash function).
-A possible workaround is to store Merkle paths along with \WOTS secret keys so that it is not necessary to recompute them on-the-fly.
+\subsection{Leveraging secret-sharing}
+Another approach is to leverage a secret-sharing scheme to split \WOTS secret keys into shares distributed among participants.
+However, it requires to jointly compute all hash function calls in a multi-party computation (MPC) setting.
+%However, the difficulty arises when Merkle trees come into play: computing Merkle paths from secret key shares requires to process all hash function calls in a multi-party computation (MPC) fashion.
+This can be very challenging in practice, especially in low latency scenarios such as performing validator duties on Ethereum, as the time to produce a threshold signature may largely exceed the requirements (see \textit{e.g.} the work from Cozzo and Smart~\cite{cryptoeprint:2019/1060} which estimates around 85 minutes to compute a threshold \textsf{SPHINCS+} signature with \textsf{SHA-3} as the underlying hash function).
+A possible workaround could be to evaluate the hash function calls in a distributed manner during key generation, so that each party can store a share for each component of each \WOTS secret key.
+Note that this would require to be the done for all Merkle paths as well.
+Assuming a Merkle tree instantiated with a 256-bit hash function and $2^{18}$ \WOTS keys with a parameter $w = 4$, that would lead to a memory requirement of $\approx 4.5$ gigabytes.
+A comprehensive performance analysis of MPC hash functions is crucial to assess what time-memory tradeoffs (\textit{i.e.}, hashing \WOTS secret key components on-the-fly instead of precomputing the value for each chunk) would be viable in practice.
+
+%
 
 
 
-Bear in mind that avoiding any MPC hash invocation implies that \WOTS secret keys cannot be generated pseudo-randomly from a secret seed shared amongst participants, further increasing memory consumption.
+%Bear in mind that avoiding any MPC hash invocation implies that \WOTS secret keys cannot be generated pseudo-randomly from a secret seed shared amongst participants, further increasing memory consumption.
  
-Still, even if all parties store their own \WOTS secret key shares and corresponding Merkle paths, they cannot sign non-interactively.
-Indeed, \XMSS not being a deterministic signature scheme, the signers have to agree on a random number to be included in the randomized message digest calculation.
+%Still, even if all parties store their own \WOTS secret key shares and corresponding Merkle paths, they cannot sign non-interactively.
+%Indeed, \XMSS not being a deterministic signature scheme, the signers have to agree on a random number to be included in the randomized message digest calculation.
