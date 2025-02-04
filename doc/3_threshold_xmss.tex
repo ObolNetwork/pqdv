@@ -72,7 +72,7 @@ Output parameters:
 Another approach is to leverage a secret-sharing scheme to split \WOTS secret keys into shares distributed among participants.
 However, it requires to jointly compute all hash function calls in a multi-party computation (MPC) setting.
 %However, the difficulty arises when Merkle trees come into play: computing Merkle paths from secret key shares requires to process all hash function calls in a multi-party computation (MPC) fashion.
-This can be very challenging in practice, especially in low latency scenarios such as performing validator duties on Ethereum, as the time to produce a threshold signature may largely exceed the requirements (see \textit{e.g.} the work from Cozzo and Smart~\cite{cryptoeprint:2019/1060} which estimates around 85 minutes to compute a threshold \textsf{SPHINCS+} signature with \textsf{SHA-3} as the underlying hash function).
+This can be very challenging in practice, especially in low latency scenarios such as performing validator duties on Ethereum, as the time to produce a threshold signature may largely exceed the requirements (see \textit{e.g.} the work from Cozzo and Smart~\cite{sharing_luov19} which estimates around 85 minutes to compute a threshold \textsf{SPHINCS+} signature with \textsf{SHA-3} as the underlying hash function).
 A possible workaround could be to evaluate the hash function calls in a distributed manner during key generation, so that each party can store a share for each component of each \WOTS secret key.
 Note that this would require to be the done for all Merkle paths as well.
 Assuming a Merkle tree instantiated with a 256-bit hash function and $2^{18}$ \WOTS keys with a parameter $w = 4$, that would lead to a memory requirement of $\approx 4.5$ gigabytes.

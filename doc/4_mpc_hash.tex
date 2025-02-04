@@ -1,1 +1,13 @@
 \section{Hash functions over MPC}
+
+Traditional hash functions (\textit{e.g.}, \KECCAK) operate over binary fields for computational efficiency on a wide range of platforms.
+On the other hand, they lead to poor performance when employed within advanced cryptographic protocols such as MPC.
+This is mainly due to the fact that traditional schemes are designed to minimize their overall gate count without minimizing specifically nonlinear gates, which require communication between the parties in an MPC setting.%\footnote{That is not exac}.
+Their inefficiency is such that it can constitute the bottleneck in MPC protocols, as highlighted by an attempt to thresholdize PQC signatures schemes~\cite{sharing_luov19}.
+In response, new primitives with design constraints finely tuned for advanced cryptographic protocols have emerged, known as \textit{arithmetization-oriented} primitives.
+\subsection{Beaver triples}
+%While they can significantly improve performance, their nonlinear operations (\textit{i.e.}, modular multiplication
+%Among them, Poseidon2~\cite{}
+\subsection{MPC-friendly hash functions}
+\paragraph{Poseidon}
+\paragraph{Hydra}
