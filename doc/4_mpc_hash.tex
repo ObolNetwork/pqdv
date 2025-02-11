@@ -1,13 +1,68 @@
 \section{Hash functions over MPC}
-
-Traditional hash functions (\textit{e.g.}, \KECCAK) operate over binary fields for computational efficiency on a wide range of platforms.
-On the other hand, they lead to poor performance when employed within advanced cryptographic protocols such as MPC.
-This is mainly due to the fact that traditional schemes are designed to minimize their overall gate count without minimizing specifically nonlinear gates, which require communication between the parties in an MPC setting.%\footnote{That is not exac}.
-Their inefficiency is such that it can constitute the bottleneck in MPC protocols, as highlighted by an attempt to thresholdize PQC signatures schemes~\cite{sharing_luov19}.
+%\subsection{MPC-friendly hash functions}
+Traditional hash functions such as \KECCAK operate over binary fields to enable efficient implementations in both hardware and software on a wide range of platforms.
+However, they lead to poor performance when employed within advanced cryptographic protocols such as MPC.
+This is mainly due to the fact that traditional schemes are designed to minimize their overall gate count without minimizing specifically nonlinear gates\footnote{They are actually symmetric designs that aim at minimizing the number of nonlinear gates for efficient software masked implementations against side-channel attacks, see for instance~\cite{fse-2014-27573}.} which require communication between parties in an MPC setting, unlike linear gates that can be computed locally.
+The overload induced by these communications is such that it can constitute the bottleneck in MPC protocols, as highlighted by an attempt to thresholdize PQC signatures schemes~\cite{sharing_luov19}.
 In response, new primitives with design constraints finely tuned for advanced cryptographic protocols have emerged, known as \textit{arithmetization-oriented} primitives.
-\subsection{Beaver triples}
-%While they can significantly improve performance, their nonlinear operations (\textit{i.e.}, modular multiplication
-%Among them, Poseidon2~\cite{}
-\subsection{MPC-friendly hash functions}
-\paragraph{Poseidon}
-\paragraph{Hydra}
+They usually operate over $\mathbb{F}_p$ with $p$ prime, making them natively compatible with linear secret sharing schemes, and rely on multiplications for nonlinear operations.
+Among them, \Poseidon~\cite{poseidon} has found its place into many Ethereum applications thanks to its efficiency in verifiable computing and its successor \PoseidonTwo~\cite{poseidon2} is currently being considered for Ethereum protocols that rely on zero-knowledge proofs\footnote{\url{https://www.poseidon-initiative.info/}}.
+\subsection{The Poseidon2 family of hash functions}
+%Because the generalized \XMSS scheme introduced in~\cite{} has been instantiated with \PoseidonTwo for benchmarking purposes, we will use this hash function for 
+%\paragraph{Poseidon2}
+\paragraph{Overview.}
+\PoseidonTwo is built upon the \PoseidonTwoPi permutation operating over $\mathbb{F}_p^t$ with $p > 2^{30}$ prime and $t \in \{2,3,4,8,12,16,20,24\}$. %such that $t = c + r$ where $c$ and $r$ refer to the capacity and rate of the sponge construction, respectively. %being Substitution-Permutation Networks (SPN) based on the HADES design strategy.
+The permutation is meant to be combined with either a compression function or a sponge construction to build a hash function.
+\PoseidonTwoPi is based on the HADES design strategy which makes a distinction between external and internal rounds.
+Internal rounds (also called partial rounds) apply the nonlinear layer to only a part of the state, usually a single element, whereas external rounds (also called full rounds) process all elements in the same way.
+More precisely, \PoseidonTwoPi processes an internal state $x = (x_0,\cdots,x_{t-1}) \in \mathbb{F}_p^t$ as follows:
+\begin{align*}
+ \mathsf{Poseidon2}^{\pi}(x) = \mathcal{E}_{R_F-1} \circ \cdots \circ \mathcal{E}_{R_F/2} \circ \mathcal{I}_{R_P-1} \circ \cdots \circ \mathcal{I}_{0}\circ \mathcal{E}_{R_F/2-1} \circ \cdots \circ \mathcal{E}_{0}(M_{\mathcal{E}} \cdot x) \,
+\end{align*}
+where $\mathcal{E}$ and $\mathcal{I}$ refer to external and internal round functions iterated for $R_F$ and $R_P$ rounds, respectively.
+Note that a linear layer is applied before running the first external round, which differs from the original \PoseidonPi design.
+The external/full round function is defined by:
+\begin{align*}
+ \mathcal{E}(x) = M_{\mathcal{E}} \cdot \Big(\big(x_0+c_0^{(i)}\big)^d,\cdots,\big(x_{t-1}+c_{t-1}^{(i)}\big)^d\Big) \,
+\end{align*}
+where $d \geq 3$ is the smallest integer such that gcd$(d,p-1) = 1$, $M_{\mathcal{E}}$ is a $t \times t$ maximum distance separable (MDS) matrix and $c_j^{(i)}$ is the $j$-th round constant for the $i$-th external round.
+The internal/partial round function is defined by:
+\begin{align*}
+ \mathcal{I}(x) = M_{\mathcal{I}} \cdot \Big(\big(x_0+\hat{c}_0^{(i)}\big)^d,x_1,\cdots,x_{t-1}\Big) \,
+\end{align*}
+where $d \geq 3$ as before, $M_{\mathcal{I}}$ is a $t \times t$ MDS matrix and $\hat{c}_0^{(i)}$ is the round constant for the $i$-th internal round.
+
+
+\paragraph{Efficient instantiations for hash-based signatures over MPC.}
+Since \PoseidonTwo is a generic construction, all instantiations will most likely not provide the same level of MPC-friendliness.
+Because all operations but exponentiations can be computed locally in an MPC setting, one should aim at minimizing the $d$ parameter as it would result in fewer multiplications.
+From a permutation-only perspective, one would also be tempted to minimize $t$ and $R = R_F + R_P$ parameters  as the amount of exponentiations is directly derived from them.
+However, at the hash function level, the optimal parameter selection depends on the input size to be processed. Indeed for large inputs that require a sponge mode as the underlying construction, having a large rate would allow to absorb more data per permutation, and eventually leading to fewer calls and fewer exponentiations in the end.
+In the case of hash-based signatures, most hash calls process small inputs to compute either hash chains from secret keys or nodes in the Merkle tree, with the exception of leafs which are obtained by hashing multiple public keys.
+This is why the generalized \XMSS scheme from~\cite{cryptoeprint:2025/055} instantiates \PoseidonTwo with the compression mode for chain and tree hashing, whereas it uses the sponge mode for leaf hashing.
+For hash-based signatures over MPC however, one can disregard the specific case of leaf hashing: since all inputs are public it is possible to recombine the shared values together in order to calculate the hash in a non-distributed manner.
+Therefore, we focus solely on instantiations based on the compression mode.
+More specifically, instantiations from~\cite{cryptoeprint:2025/055} all consider a 31-bit prime field for efficient SNARK-based aggregation with $t = 16$ and $t = 24$ for chain and tree hashing, respectively.
+Table~\ref{tab:poseidon2_inst31} lists the relevant parameters for two such primes, namely Mersenne31 and BabyBear, which enable highly efficient implementations.
+%The remaining parameters of interest, namely $d$ and $R = R_F + R_P$, depend on the value of $p$ as detailed in 
+
+
+
+
+\begin{table}[htbp]
+	\centering
+	\begin{tabular}{ccccc}
+		\toprule
+    		{$p$} & {$t$} & {$d$} & {$R_F$} & {$R_P$} \\
+    		\midrule
+    		& 16 & 5 & 8 & 14 \\
+    		\multirow{-2}{*}{$2^{31}-1$} & 24 & 5 & 8 & 22 \\
+    		\midrule
+    		& 16 & 7 & 8 & 13 \\
+    		\multirow{-2}{*}{$2^{31}-2^{27} + 1$}  & 24 & 7 & 8 & 21 \\
+    		\bottomrule
+	\end{tabular}
+	\caption{\PoseidonTwo parameters for 31-bit prime fields.\label{tab:poseidon2_inst31}}
+\end{table}
+
+\subsection{Secure multiplication}

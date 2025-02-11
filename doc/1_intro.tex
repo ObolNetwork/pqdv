@@ -5,21 +5,21 @@ There are several standardization processes ongoing, notably by the one NIST whi
 Because \textsf{ML-DSA} and \textsf{FN-DSA} are both lattice-based, NIST has sollicited the submission of additional signatures schemes to expand its PQC signature portfolio\footnote{\url{https://csrc.nist.gov/projects/pqc-dig-sig}}.
 Unfortunately, the current post-quantum signature schemes selected by NIST for standardization do not inherently support advanced functionalities such as signature aggregation and/or threshold signing.
 Signature aggregation is commonly used in blockchain systems as this powerful feature allows to compress many signatures into a short aggregate, shrinking the storage space and speeding-up the verification time.
-Ethereum leverages takes advantage of aggregate signatures in its consensus layer thanks to the \BLS signature scheme~\cite{bls2001}.
-On top of intrinsically supporting signature/public key aggregation, \BLS is straightforward to be turned into a threshold signature scheme when combined with Shamir Secret Sharing.
+Ethereum leverages  aggregate signatures in its consensus layer thanks to the \BLS signature scheme~\cite{bls2001}.
+On top of intrinsically supporting signature/public key aggregation, \BLS is straightforward to be turned into a threshold signature scheme when combined with Shamir secret sharing which lends itself to Distributed Validator Technology (DVT)~\cite{DVT}.
 %\begin{itemize}
 %	\item A shared secret $s$ is shared (or distributively generated) in $n$ parts $s_0, \cdots, s_i$ using a $t$-out-of-$n$ setting (i.e. at least $t$ must collude to produce a valid signature under $s$).
 %	\item To sign a message $M$, each party $\mathcal{P}_i$ \textit{partially} signs $M$ using its own private share $s_i$ as in non-threshold BLS and sends its partial signature along with its partial public key to the aggregator.
 %	\item Once (at least) $t$ partial signatures have been collected and verified, the aggregator combines the partial signatures all together using Lagrange interpollation to get a \textit{full} signature of $M$ under $s$.
 %\end{itemize}
 An important observation in the case of \BLS is that aggregated and/or threshold \BLS signatures are indistinguishable from raw ones, all being points on the same elliptic curve.
-This allows to build efficient distributed validator solutions, such as the \texttt{charon} middleware\footnote{\url{https://github.com/ObolNetwork/charon}} which operates in a totally transparent manner from a consensus client point of view.
+This allows to build efficient DVT middleware solutions, such as the \texttt{charon}\footnote{\url{https://github.com/ObolNetwork/charon}}, which operates in a totally transparent manner from a consensus client point of view.
 %This allows to build distributed validator middleware solutions such as \href{https://github.com/ObolNetwork/charon}{\texttt{charon}}, which sits in between a consensus client %(also called beacon node) and a validator client.
 %In this configuration, the validator client is in charge of signing duties while the middleware  
 %Interestingly in that case threshold signatures operate in the shades, without the knowledge of the upstream and downstream clients.
 However, because \BLS is based on elliptic curve pairing, it would not provide enough security against quantum adversaries.
 To address this concern, the Ethereum foundation recently introduced a family of hash-based signature schemes as post-quantum atlernatives to \BLS~\cite{cryptoeprint:2025/055}.
-The main idea behind their design is to aggregate hash-based signatures using post-quantum succinct non-interactively argument of knowledge (pqSNARK) systems.%, an approach which has already been explored in a previous work~\cite{agg-hash-based-starks}.
-While this seems to be a promising alternative, it might have considerable impacts on distributed validators solutions which currently take advantage of the homomorphic properties from \BLS.
+The main idea behind their design is to aggregate hash-based signatures using post-quantum succinct non-interactively argument of knowledge (pqSNARK) systems. %, an approach which has already been explored in a previous work~\cite{agg-hash-based-starks}.
+While this seems to be a promising alternative, it would have considerable impacts on distributed validators solutions which currently rely on the homomorphic properties of \BLS to leverage threshold signatures.
 The goal of this document is to identify the challenges that could arise from such a transition and discuss the potential solutions to address them.
 

@@ -2,7 +2,7 @@
 The downside of building a threshold hash-based signature by leveraging a SNARK system as mentioned above is that the aggregation of threshold signatures would not be straightforward (since threshold signatures are proofs instead of raw hash-based signatures).
 In the case of the Beacon chain where threshold signatures occur \textit{before} aggregation duties, it is imperative for distributed validator middlewares to output signatures that can be aggregated according to the protocol.
 Therefore, this section focuses on constructions which lead to threshold Winternitz signatures that are indistinguishable from non-threshold ones, as in \BLS.
-\subsection{Distributed hash-based signatures with Boolean shares.}
+\subsection{Distributed hash-based signatures with Boolean shares}
 Distributed variants of hash-based signatures, including \XMSS, have been explored by Kelsey, Lang and Lucks in~\cite{cryptoeprint:2022/241} where they introduce $n$-of-$n$ and $k$-of-$n$ threshold signature schemes which rely on Boolean shares.
 %\paragraph{$n$-of-$n$ setting.}
 For the $n$-of-$n$ setting, a trusted dealer starts from an existing Merkle tree and splits each \WOTS secret key $\mathsf{sk_i}$ by generating $n$ random values $\mathsf{r}^0_i,\cdots,\mathsf{r}^{n-1}_i$ to compute $\mathsf{r}^h_i = \mathsf{r}^0_i \oplus \mathsf{r}^1_i \oplus \cdots \oplus \mathsf{r}^{n-1}_i \oplus \mathsf{sk}_i$.
@@ -14,7 +14,12 @@ Furthermore, the trusted dealer also needs to provide the helper with  shares fo
 To minimize memory usage for the parties, the key shares are actually generated pseudorandomly using a \PRF as detailed in Algorithm~\ref{alg:bool_split_n}.
 To turn their $n$-of-$n$ scheme into a $k$-of-$n$ threshold scheme, they propose to instantiate a Merkle tree that contains keys for all possible $\binom{n}{k}$ quorums.
 Beyond complexity, this increases the height of the Merkle tree and hence the signature size as well as the memory requirements for the helper.
-Because their designs are incompatible with distributed key generation (DKG) methods, we investigate other solutions instead. 
+Overall, this approach comes with several limitations from a DVT perspective.
+First, it is incompatible with distributed key generation (DKG) algorithms since a trusted dealer is required to split the key into multiple shares.
+While supporting DKG is not a necessary prerequisite for distributed validators, it is a valuable feature as it ensures that the private key is never known in its entirety by any single party.
+Second, and more importantly, the helper role contradicts with the nature of DVT by introducing a single point of failure which affects decentralization.
+Therefore, we investigate alternative solutions that could overcome these weaknesses.
+
 
 %\begin{myalgorithm}{Split a Merkle tree of WOTS keys into distributed key shares for $n$-of-$n$ signatures, according to~\cite{cryptoeprint:2022/241}.}
 
@@ -68,17 +73,22 @@ Output parameters:
 \end{algostyle}
 \end{algorithm}
 
-\subsection{Leveraging secret-sharing}
-Another approach is to leverage a secret-sharing scheme to split \WOTS secret keys into shares distributed among participants.
+\subsection{Leveraging secret sharing}
+Another approach is to leverage a secret sharing scheme to split \WOTS secret keys into shares distributed among participants.
 However, it requires to jointly compute all hash function calls in a multi-party computation (MPC) setting.
 %However, the difficulty arises when Merkle trees come into play: computing Merkle paths from secret key shares requires to process all hash function calls in a multi-party computation (MPC) fashion.
 This can be very challenging in practice, especially in low latency scenarios such as performing validator duties on Ethereum, as the time to produce a threshold signature may largely exceed the requirements (see \textit{e.g.} the work from Cozzo and Smart~\cite{sharing_luov19} which estimates around 85 minutes to compute a threshold \textsf{SPHINCS+} signature with \textsf{SHA-3} as the underlying hash function).
-A possible workaround could be to evaluate the hash function calls in a distributed manner during key generation, so that each party can store a share for each component of each \WOTS secret key.
-Note that this would require to be the done for all Merkle paths as well.
-Assuming a Merkle tree instantiated with a 256-bit hash function and $2^{18}$ \WOTS keys with a parameter $w = 4$, that would lead to a memory requirement of $\approx 4.5$ gigabytes.
-A comprehensive performance analysis of MPC hash functions is crucial to assess what time-memory tradeoffs (\textit{i.e.}, hashing \WOTS secret key components on-the-fly instead of precomputing the value for each chunk) would be viable in practice.
-
-%
+A possible workaround could be to jointly evaluate all hash function calls during key generation, so that each party can store a pre-computed share for each component of each \WOTS secret key.
+Assuming a Merkle tree instantiated with a 256-bit hash function and $2^{18}$ \WOTS keys with a parameter $w = 4$, that would lead to a memory requirement of $\approx 512$ MiB.
+Note that this estimate does not take into account the storage of Merkle paths.
+Again, to avoid joint hash calculations on-the-fly, all Merkle tree leafs could be precomputed during key generation.
+Because they are not considered secret material thanks to the preimage resistance of the underlying hash function, the parties can recombine their shares to get the plain (\textit{i.e.}, non-shared) leafs values so that they will be able to calculate Merkle paths in a non-distributed manner when generating signatures.
+Still assuming a 256-bit hash function, this would further increase the memory requirements by $8$ MiB, leading to $520$ MiB overall.
+%Note that this would require to be the done for all Merkle paths as well.
+%Assuming a Merkle tree instantiated with a 256-bit hash function and $2^{18}$ \WOTS keys with a parameter $w = 4$, that would lead to a memory requirement of $\approx 4.5$ gigabytes.
+While this might be acceptable, it remains unclear what would be the (supposedly colossal) timing requirements for the key generation.
+To answer this question, we hereafter review the performance of MPC-friendly hash functions to assess what time-memory tradeoffs would be of practical interest.
+%More generally, a comprehensive performance analysis of MPC hash functions is crucial to assess what time-memory tradeoffs would be of practical interest.
 
 
 
