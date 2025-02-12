@@ -15,10 +15,10 @@ To provide a concrete example, we hereafter introduce the Winternitz OTS (\WOTS)
 	\item the Winternitz parameter $w$, being a power of 2.% (usually selected from $\{2,4,8\}$).
 	\item a $n$-bit hash function $H$ such that $n=vw$
 \end{itemize}
-To generate an OTS key pair, one randomly generates $v$ $n$-bit secret keys  $sk_0,\cdots,sk_{v-1}$ and derives the corresponding public keys using an hash chain of length $2^w-1$ (\textit{i.e.}, $pk_i = H^{2^w-1}(sk_i)$).
+To generate an OTS key pair, one randomly generates $v$ $n$-bit secret keys  $sk_0,\cdots,sk_{v-1}$ and derives the corresponding public keys using hash chains of length $2^w-1$ (\textit{i.e.}, $pk_i = H^{2^w-1}(sk_i)$).
 To sign a message $m$, a checksum over $m$ is appended to it before hashing.
 The $n$-bit output is then divided into $v$ $w$-bit chunks $c_0,\cdots,c_{v-1}$ and the signature consists of $\sigma = \sigma_0, \cdots, \sigma_{v-1}$ where $\sigma_i = H^{c_i}(sk_i)$. %for $i \in \{0,\cdots,v-1\}$.
-To verify a signature, one checks that $H^{w-1-c_i}(\sigma_i) = pk_i$ for $i \in \{0,\cdots,v-1\}$.
+To verify a signature, one checks that $H^{2^w-1-c_i}(\sigma_i) = pk_i$ for $i \in \{0,\cdots,v-1\}$.
 %\footnote{Practical \WOTS deployments actually do not generate the private keys randomly but rely on a pseudorandom function (PRF) with a secret seed instead to reduce memory storage requirements.}
 
 %To sign the $i$th message, the signer uses the $i$th OTS secret key and includes the corresponding public key along with its Merkle path in the signature.
