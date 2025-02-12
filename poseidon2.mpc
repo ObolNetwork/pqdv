@@ -129,9 +129,9 @@ class Poseidon2:
 
 
 # default values
-p = 2**31 - 1
-#p = 2**31 - 2**27 + 1
-t = 16
+#p = 2**31 - 1
+p = 2**31 - 2**27 + 1
+t = 24
 
 args = len(program.args)
 if args > 2:
