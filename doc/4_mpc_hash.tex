@@ -48,21 +48,77 @@ Table~\ref{tab:poseidon2_inst31} lists the relevant parameters for two such prim
 
 
 
-
+\renewcommand\arraystretch{1.25}
 \begin{table}[htbp]
 	\centering
-	\begin{tabular}{ccccc}
+	\begin{tabular}{cccccccc}
 		\toprule
-    		{$p$} & {$t$} & {$d$} & {$R_F$} & {$R_P$} \\
+    		\textbf{Prime} $p$ & \multicolumn{4}{c}{\textbf{Parameters}} & \textbf{Sbox impl.} & \multicolumn{2}{c}{\textbf{MPC metrics}}\\
+    		 & {$t$} & {$d$} & {$R_F$} & {$R_P$} & & (triples, squares) & com. rounds\\
     		\midrule
-    		& 16 & 5 & 8 & 14 \\
-    		\multirow{-2}{*}{$2^{31}-1$} & 24 & 5 & 8 & 22 \\
+    		& 16 & 5 & 8 & 14 & $(x^2)^2 \cdot x$ & $(426, 0)$ & 66 \\
+    		%\cmidrule[0.4pt]{2-8}
+    		\multirow{-2}{*}{$2^{31}-1$} & 24 & 5 & 8 & 22 &  $(x^2)^2 \cdot x$ & $(624, 0)$ & 90\\
     		\midrule
-    		& 16 & 7 & 8 & 13 \\
-    		\multirow{-2}{*}{$2^{31}-2^{27} + 1$}  & 24 & 7 & 8 & 21 \\
+    		& & & & & $(x^2)^3 \cdot x$ & $(423, 141)$ & 63\\
+    		%\cmidrule[0.4pt]{6-8}
+    		& \multirow{-2}{*}{16} & \multirow{-2}{*}{7} & \multirow{-2}{*}{8} & \multirow{-2}{*}{13} & $(x^2)^2 \cdot x^2 \cdot x$ & $(564, 0)$ & 84\\
+    		%\cmidrule[0.4pt]{2-8}
+    	    & & & & & $(x^2)^3 \cdot x$ & $(639, 213)$  & 87\\
+    		%\cmidrule[0.4pt]{6-8}
+    		\multirow{-4}{*}{$2^{31}-2^{27} + 1$}  & \multirow{-2}{*}{24}  & \multirow{-2}{*}{7} & \multirow{-2}{*}{8} & \multirow{-2}{*}{21} &  $(x^2)^2 \cdot x^2 \cdot x$  & $(852, 0)$ & 116\\
     		\bottomrule
 	\end{tabular}
-	\caption{\PoseidonTwo parameters for 31-bit prime fields.\label{tab:poseidon2_inst31}}
+	\caption{\PoseidonTwoPi parameters for 31-bit prime fields.\label{tab:poseidon2_inst31}}
 \end{table}
 
-\subsection{Secure multiplication}
+%\subsection{Secure multiplication}
+
+\renewcommand\arraystretch{1.25}
+\begin{table}[htbp]
+	\centering
+  	\resizebox{\textwidth}{!}{  
+	\begin{tabular}{ccccccc}
+		\toprule
+    		\textbf{Encoding} & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Sig. size} (KiB)} & \multicolumn{2}{c}{\textbf{Perm. calls} (average case)} \\
+    		 & {$w$} & chunks  &  $L=2^{18}$ & $ L=2^{20}$ & chains ($t = 16$) & leafs ($t = 24$) \\
+    		\midrule
+	     &  1 & 163 & 4.97 & 5.03 & 81   & 78 \\
+	     &  2 & 82  & 2.75 & 2.81 & 123  & 40 \\
+	     &  4 & 42  & 1.66 & 1.72 & 303  & 22 \\
+	 \multirow{-4}{*}{W}    &  8 & 22  & 1.11 & 1.34 & 2676 & 14 \\
+	 \midrule
+ 	   &  1 & 155 & 4.75 & 4.81 & 78   & 74 \\
+	   &  2 & 78  & 2.75 & 2.7  & 117  & 38 \\
+	   &  4 & 39  & 1.58 & 1.64 & 293  & 20 \\
+	 \multirow{-4}{*}{TSW ($\delta = 1$)}  &  8 & 20  & 1.06 & 1.27 & 2550 & 13 \\
+	\hline
+	\end{tabular}
+	}
+	\caption{Generalized \XMSS instantiations with \PoseidonTwo over a 31-bit prime field. The reported number of permutation calls only considers calculations during signature generation that require MPC (\textit{i.e.}, tree hashing is omitted).
+	For hash chains, it is assumed that the signer has knowledge of the secret keys for each chunk (\textit{i.e.}, they are not derived from a seed using a PRF).
+	 Regarding encodings, we refer to the original publication~\cite{cryptoeprint:2025/055} for more details.}
+\end{table}
+
+
+%\renewcommand\arraystretch{1.25}
+%\begin{table}[htbp]
+%	\centering
+%	\begin{tabular}{ccccccc}
+%		\toprule
+%    		\textbf{Encoding} & \multicolumn{3}{c}{\textbf{Parameters}} & \textbf{Sig. size} &  \multicolumn{2}{c}{\textbf{Perm. calls}} \\
+%    		 & {$w$}  (bits) & chunks & $n$ (FE) &  (KiB) & DKG & sig. gen (average case) \\
+%    		\midrule
+%	     &  1 & 163 & 7 & 5.03 & $2^L (163\pi_{16} + 77\pi_{24})$ & 81   \\
+%	     &  2 & 82  & 7 & 2.81 & $2^L (246\pi_{16} + 39\pi_{24})$ & 123  \\
+%	     &  4 & 42  & 7 & 1.72 & $2^L (630\pi_{16} + 21\pi_{24})$ & 303  \\
+%	 \multirow{-4}{*}{W}    &  8 & 22  & 8 & 1.34 & $2^L (5\,610\pi_{16} + 13\pi_{24})$ & 2676 \\
+%	 \midrule
+% 	   &  1 & 155 & 7 & 4.81 & & 78   \\
+%	   &  2 & 78  & 7 & 2.7  & & 117  \\
+%	   &  4 & 39  & 7 & 1.64 & & 293  \\
+%	 \multirow{-4}{*}{TSW ($\delta = 1$)}   &  8 & 20  & 8 & 1.27 & & 2550 \\
+%	\hline
+%	\end{tabular}
+%	\caption{\PoseidonTwoPi parameters for 31-bit prime fields.\label{tab:poseidon2}}
+%\end{table}
