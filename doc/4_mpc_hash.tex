@@ -40,20 +40,40 @@ From a permutation-only perspective, one would also be tempted to minimize $t$ a
 However, at the hash function level, the optimal parameter selection depends on the input size to be processed. Indeed for large inputs that require a sponge mode as the underlying construction, having a large rate would allow to absorb more data per permutation, and eventually leading to fewer calls and fewer exponentiations in the end.
 In the case of hash-based signatures, most hash calls process small inputs to compute either hash chains from secret keys or nodes in the Merkle tree, with the exception of leafs which are obtained by hashing multiple public keys.
 This is why the generalized \XMSS scheme from~\cite{cryptoeprint:2025/055} instantiates \PoseidonTwo with the compression mode for chain and tree hashing, whereas it uses the sponge mode for leaf hashing.
-For hash-based signatures over MPC however, one can disregard the specific case of leaf hashing: since all inputs are public it is possible to recombine the shared values together in order to calculate the hash in a non-distributed manner.
-Therefore, we focus solely on instantiations based on the compression mode.
-More specifically, instantiations from~\cite{cryptoeprint:2025/055} all consider a 31-bit prime field for efficient SNARK-based aggregation with $t = 16$ and $t = 24$ for chain and tree hashing, respectively.
-Table~\ref{tab:poseidon2_inst31} lists the relevant parameters for two such primes, namely Mersenne31 and BabyBear, which enable highly efficient implementation techniques.
+%For hash-based signatures over MPC however, one can disregard the specific case of tree hashing: since all inputs are public it is possible to recombine the shared values together to run the calculations in a non-distributed manner.
+%Therefore, we focus solely on instantiations based on the compression mode.
+More specifically, their instantiations use a 31-bit prime field for efficient SNARK-based aggregation with $t = 16$ and $t = 24$ for chain and leaf hashing, respectively.
+We will hence focus on these parameters in the rest of this document.
+%Table~\ref{tab:poseidon2_inst31} lists the relevant \PoseidonTwoPi parameters for two such primes, namely Mersenne31 and BabyBear, which enable highly efficient implementation techniques.
 %The remaining parameters of interest, namely $d$ and $R = R_F + R_P$, depend on the value of $p$ as detailed in 
 
-
+\subsection{Performance assessment}
+\paragraph{Hash chains over MPC.}
+Benchmarking MPC protocols is challenging as their efficiency not only depends on the underlying cryptographic primitives but also on the security model, number of participants and network conditions.
+Because only nonlinear operations require communication between participants, the number of multiplications provides a good performance indicator.
+If a multiplication usually requires one communication round along with some precomputed data (\textit{i.e.}, Beaver triples), in the case of exponentiation it is possible to lower the number of communication rounds at the cost of more precomputation.
+Therefore, the technique employed to compute $x^d$ has a significant impact on performance.
+To estimate the number of communication rounds required for \PoseidonTwoPi over 31-bit prime fields, we used the MP-SPDZ framework~\cite{mp-spdz}\footnote{\url{https://github.com/data61/MP-SPDZ}} with the MASCOT protocol~\cite{mascot} which provides active security.
+The \PoseidonTwoPi implementation, meant to be compiled by MP-SPDZ, is available at \url{https://github.com/ObolNetwork/pqdv/blob/main/poseidon2.mpc}.
+We considered two different 31-bit prime fields which enable highly efficient implementation techniques, namely Mersenne31 and BabyBear and the corresponding results.
+As reported in Table~\ref{tab:poseidon2_inst31}, although the BabyBear prime has a larger $d$ parameter, it actually requires fewer communication rounds when the Sbox is implemented with cubes, making it more MPC-friendly\footnote{BabyBear also shows advantages over Mersenne31 when it comes to SNARKS thanks to its two-adic multiplactive subgroups for FFT.}.
+Having now an idea on the number of communication rounds per permutation, it is necessary to evaluate how many permutation calls are needed to sign a message (it actually also matters for DKG, but we will assume it is not an issue at this stage as it suffers less timing constraints).
+To do so, we rely on the \XMSS instantiations with \PoseidonTwo from~\cite{cryptoeprint:2025/055} and use a script developped by the authors\footnote{\url{https://github.com/b-wagn/hashsig-parameters}} to calculate the number of permutation calls to sign a message in the average case.
+According to the instantiations considered in Table~\ref{tab:xmss_poseidon2_permcalls}, on average, the number of permutation calls for hash chains is at least 78.
+While at first glance it seems that $78 \cdot 63 = 4\,914$ communication rounds are required to generate a signature, a single communication round can actually be used for multiple multiplications as long as they do not depend on each other.
+In the case of hash-based signature, since each chunk is processed independently, it is possible to leverage these parallelization capabilities at the chunk level.
+Still, in the worst case where a $w$-bit chunk has value $2^w-1$, then at least $(2^w-1) \cdot 63$ rounds will be needed anyway due to the nature of hash chains.
+Like all hash-based signatures schemes, instantiations with low $w$ parameter (typically $w \in \{1,2\}$) are the most MPC-friendly as they require fewer hash calls.
+On the other hand, they lead to very a large signature size and will very likely not be considered for deployment on the Ethereum beacon chain for this reason.
+Among the instantiations listed in Table~\ref{tab:xmss_poseidon2_permcalls}, the ones with $w=4$ seem the most promising as they provide a nice trade-off between signature size and running time.
+By leveraging parallelization capabilities, it would require around a thousand communication rounds to generate a signature. 
 
 \renewcommand\arraystretch{1.25}
-\begin{table}[htbp]
+\begin{table}[t]
 	\centering
 	\begin{tabular}{cccccccc}
 		\toprule
-    		\textbf{Prime} $p$ & \multicolumn{4}{c}{\textbf{Parameters}} & \textbf{Sbox impl.} & \multicolumn{2}{c}{\textbf{MPC metrics}}\\
+    		\textbf{Prime} $p$ & \multicolumn{4}{c}{\textbf{Parameters}} & \textbf{Sbox impl.} & \multicolumn{2}{c}{\textbf{MPC cost metrics}}\\
     		 & {$t$} & {$d$} & {$R_F$} & {$R_P$} & & (triples, squares) & com. rounds\\
     		\midrule
     		& 16 & 5 & 8 & 14 & $(x^2)^2 \cdot x$ & $(426, 0)$ & 66 \\
@@ -75,50 +95,54 @@ Table~\ref{tab:poseidon2_inst31} lists the relevant parameters for two such prim
 %\subsection{Secure multiplication}
 
 \renewcommand\arraystretch{1.25}
-\begin{table}[htbp]
+\begin{table}[h]
 	\centering
-  	\resizebox{\textwidth}{!}{  
-	\begin{tabular}{ccccccc}
+  	%\resizebox{\textwidth}{!}{  
+	\begin{tabular}{cccccc}
 		\toprule
-    		\textbf{Encoding} & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Sig. size} (KiB)} & \multicolumn{2}{c}{\textbf{Perm. calls} (average case)} \\
-    		 & {$w$} & chunks  &  $L=2^{18}$ & $ L=2^{20}$ & chains ($t = 16$) & leafs ($t = 24$) \\
+    		\textbf{Encoding} & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Sig. size} (KiB)}  & \textbf{Perm. calls} \\
+    		 & {$w$} & chunks  & $L=2^{18}$ & $ L=2^{20}$ & (average case)   \\
     		\midrule
-	     &  1 & 163 & 4.97 & 5.03 & 81   & 78 \\
-	     &  2 & 82  & 2.75 & 2.81 & 123  & 40 \\
-	     &  4 & 42  & 1.66 & 1.72 & 303  & 22 \\
-	 \multirow{-4}{*}{W}    &  8 & 22  & 1.11 & 1.34 & 2676 & 14 \\
+	     &  1 & 163 & 4.97 & 5.03 & 81    \\
+	     &  2 & 82  & 2.75 & 2.81 & 123 \\
+	     &  4 & 42  & 1.66 & 1.72 & 303 \\
+	 \multirow{-4}{*}{W}  & 8 & 22 & 1.11 & 1.34 & 2676 \\
 	 \midrule
- 	   &  1 & 155 & 4.75 & 4.81 & 78   & 74 \\
-	   &  2 & 78  & 2.75 & 2.7  & 117  & 38 \\
-	   &  4 & 39  & 1.58 & 1.64 & 293  & 20 \\
-	 \multirow{-4}{*}{TSW ($\delta = 1$)}  &  8 & 20  & 1.06 & 1.27 & 2550 & 13 \\
+ 	   &  1 & 155 & 4.75 & 4.81 & 78   \\
+	   &  2 & 78  & 2.65 & 2.7  & 117  \\
+	   &  4 & 39  & 1.58 & 1.64 & 293  \\
+	 \multirow{-4}{*}{TSW ($\delta = 1$)}  &  8 & 20 & 1.06 & 1.27 & 2550  \\
 	\hline
 	\end{tabular}
-	}
-	\caption{Generalized \XMSS instantiations with \PoseidonTwo over a 31-bit prime field. The reported number of permutation calls only considers calculations during signature generation that require MPC (\textit{i.e.}, tree hashing is omitted).
-	For hash chains, it is assumed that the signer has knowledge of the secret keys for each chunk (\textit{i.e.}, they are not derived from a seed using a PRF).
-	 Regarding encodings, we refer to the original publication~\cite{cryptoeprint:2025/055} for more details.}
+	%}
+	\caption{Generalized \XMSS instantiations with \PoseidonTwo over a 31-bit prime field. The reported number of permutation calls only considers hash chains during signature generation. For signature sizes, we consider two different leaf numbers, namely $L \in \{2^{18}, 2^{20}\}$. Regarding encodings, we refer to the original publication~\cite{cryptoeprint:2025/055} for more details.\label{tab:xmss_poseidon2_permcalls}}
 \end{table}
 
+
+\paragraph{Precomputed hash chains.}
+As mentioned in the previous section, another alternative would be to precompute all hash chains intermediate value, for each secret key and for every possible chunk.
 
 %\renewcommand\arraystretch{1.25}
 %\begin{table}[htbp]
 %	\centering
-%	\begin{tabular}{ccccccc}
+%  	\resizebox{\textwidth}{!}{  
+%	\begin{tabular}{cccccccc}
 %		\toprule
-%    		\textbf{Encoding} & \multicolumn{3}{c}{\textbf{Parameters}} & \textbf{Sig. size} &  \multicolumn{2}{c}{\textbf{Perm. calls}} \\
-%    		 & {$w$}  (bits) & chunks & $n$ (FE) &  (KiB) & DKG & sig. gen (average case) \\
+%    		\textbf{Encoding} & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Sig. size} (KiB)}  & \textbf{Perm. calls} & \multicolumn{2}{c}{\textbf{Precomp. cost} (GiB)} \\
+%    		 & {$w$} & chunks  & $L=2^{18}$ & $ L=2^{20}$ & (average case) &  $L=2^{18}$ & $ L=2^{20}$  \\
 %    		\midrule
-%	     &  1 & 163 & 7 & 5.03 & $2^L (163\pi_{16} + 77\pi_{24})$ & 81   \\
-%	     &  2 & 82  & 7 & 2.81 & $2^L (246\pi_{16} + 39\pi_{24})$ & 123  \\
-%	     &  4 & 42  & 7 & 1.72 & $2^L (630\pi_{16} + 21\pi_{24})$ & 303  \\
-%	 \multirow{-4}{*}{W}    &  8 & 22  & 8 & 1.34 & $2^L (5\,610\pi_{16} + 13\pi_{24})$ & 2676 \\
+%	     &  1 & 163 & 4.97 & 5.03 & 81  & 2.22 & 8.91  \\
+%	     &  2 & 82  & 2.75 & 2.81 & 123 & 2.24 & 8.96  \\
+%	     &  4 & 42  & 1.66 & 1.72 & 303 & 4.59 & 18.37 \\
+%	 \multirow{-4}{*}{W}  & 8 & 22 & 1.11 & 1.34 & 2676 & 41.91 & 176 \\
 %	 \midrule
-% 	   &  1 & 155 & 7 & 4.81 & & 78   \\
-%	   &  2 & 78  & 7 & 2.7  & & 117  \\
-%	   &  4 & 39  & 7 & 1.64 & & 293  \\
-%	 \multirow{-4}{*}{TSW ($\delta = 1$)}   &  8 & 20  & 8 & 1.27 & & 2550 \\
+% 	   &  1 & 155 & 4.75 & 4.81 & 78   & 2.11 & 8.47 \\
+%	   &  2 & 78  & 2.65 & 2.7  & 117  & 2.13 & 8.5 \\
+%	   &  4 & 39  & 1.58 & 1.64 & 293  & 4.26 & 17.06 \\
+%	 \multirow{-4}{*}{TSW ($\delta = 1$)}  &  8 & 20 & 1.06 & 1.27 & 2550 & 40 & 160 \\
 %	\hline
 %	\end{tabular}
-%	\caption{\PoseidonTwoPi parameters for 31-bit prime fields.\label{tab:poseidon2}}
+%	}
+%	\caption{Generalized \XMSS instantiations with \PoseidonTwo over a 31-bit prime field. The reported number of permutation calls only considers hash chains during signature generation.
+%	 Regarding encodings, we refer to the original publication~\cite{cryptoeprint:2025/055} for more details.}
 %\end{table}
