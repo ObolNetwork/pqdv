@@ -23,3 +23,20 @@ The main idea behind their design is to aggregate hash-based signatures using po
 While this seems to be a promising alternative, it would have considerable impacts on distributed validators solutions which currently rely on the homomorphic properties of \BLS to leverage threshold signatures.
 The goal of this document is to identify the challenges that could arise from such a transition and discuss the potential solutions to address them.
 
+
+\renewcommand\arraystretch{1.25}
+\begin{table}[h]
+	\centering 
+	\begin{tabular}{ccc}
+		\toprule
+    		& \BLS & HBS \\
+    		\midrule
+    		post-quantum secure & \xmark & \cmark \\
+    		native aggregation support & \cmark  & \xmark \\
+    		non-interactive threshold signing & \cmark  & \xmark\\
+    		deterministic & \cmark & \xmark\\
+    		\bottomrule
+	\end{tabular}
+	%}
+	\caption{Properties comparison between \BLS and hash-based signature (HBS) schemes.\label{tab:bls_vs_hbs}}
+\end{table}

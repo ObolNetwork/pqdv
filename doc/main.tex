@@ -30,7 +30,13 @@
 \usepackage{mathtools}
 \usepackage{booktabs}
 \usepackage{multirow}
+% For {x/c}mark
+\usepackage{amssymb}
+\usepackage{pifont}
 
+
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
 \input{macros}
 
 \newtcolorbox{algostyle}[1][]{%
@@ -92,7 +98,7 @@ In this research, we study the practical challenges of deploying such schemes in
 
 \input{4_mpc_hash}
 
-
+\input{todo}
 
 %%%% 8. BILBIOGRAPHY %%%%
 \bibliographystyle{alpha}
