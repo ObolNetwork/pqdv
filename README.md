@@ -4,12 +4,80 @@ Research project on practical threshold hash-based signatures for distributed va
 
 ## Poseidon2 over MPC
 
-Experimental benchmarks were conducted using the [MP-SPDZ framework]<https://github.com/data61/MP-SPDZ>.
-The file `poseidon2.mpc` implements the Poseidon2 hash function for this framework and is aimed to be copied into `MP-SPDZ/Programs/Source`.
-It supports the prime fields defined by Mersenne31, BabyBear and KoalaBear 31-bit primes.
-Because this work targets XMSS signatures, it focuses on hash chain calculations.
-One can compile the program for the KoalaBear prime by running `./compile.py poseidon2 -P 2130706433 <c> <w>` where `<c>` and `<w>` refer to the number of chunks and their width (in bits), respectively, of the XMSS instantiation.
-Then one can run the protocol of their choice by running `./Scripts/<protocol>.sh poseidon2 -N <n> -S 31 -v` where `<n>` refers to the number of parties for the MPC calculation.
-For benchmarks over different machines, this repo contains a script `average_bench.sh` which is meant to be run on each machine separately to run a protocol for a given number of iterations in order to average the results over multiple runs.
-It requires to run `./Scripts/setup-ssl.sh` on a single machine, copy the resulting keys/certificates in `MP-SPDZ/Player-Data` to the other machines and run `c_rehash MP-SPDZ/Player-Data`.
-It also requires to have a file named `HOSTS` which contains the ip adresses of all players. Note that communications is handled with TCP over ports 5000:5009, one can run `sudo ufw allow 5000:5009/tcp` if necessary. Then running `./average_bench.sh <protocol> poseidon2 <num_parties> <party_index> <num_runs>` on each machine for a given `<protocol>` (i.e. `malicious-shamir-party.x`) should work fine.
+Experimental benchmarks were conducted using the [MP-SPDZ framework](https://github.com/data61/MP-SPDZ).
+
+### Implementation
+
+The file `poseidon2.mpc` implements the Poseidon2 hash function for the MP-SPDZ framework and is intended to be copied into the `MP-SPDZ/Programs/Source` directory. It supports the following prime fields:
+
+- Mersenne31
+- BabyBear
+- KoalaBear (31-bit primes)
+
+This implementation focuses on hash chain calculations as required by XMSS signatures.
+
+### Compilation
+
+To compile the program for the KoalaBear prime, run the following command:
+
+```bash
+./compile.py poseidon2 -P 2130706433 <c> <w>
+```
+
+Where:
+- `<c>`: Number of chunks in the XMSS instantiation
+- `<w>`: Chunk width in bits
+
+### Protocol Execution
+
+To execute the protocol, use the following command:
+
+```bash
+./Scripts/<protocol>.sh poseidon2 -N <n> -S 31 -v
+```
+
+Where:
+- `<protocol>`: Protocol name (e.g., `malicious-shamir-party.x`)
+- `<n>`: Number of parties for the MPC calculation
+
+### Benchmarking Across Machines
+
+For benchmarking across multiple machines, the repository provides the `average_bench.sh` script. This script runs the protocol for a specified number of iterations to average the results.
+
+#### Setup Instructions
+1. Run the SSL setup script on one machine:
+
+   ```bash
+   ./Scripts/setup-ssl.sh
+   ```
+
+2. Copy the generated keys and certificates from `MP-SPDZ/Player-Data` to the other machines.
+3. On each machine, run:
+
+   ```bash
+   c_rehash MP-SPDZ/Player-Data
+   ```
+
+4. Create a `HOSTS` file listing the IP addresses of all players.
+5. Allow TCP traffic on ports 5000–5009 if necessary:
+
+   ```bash
+   sudo ufw allow 5000:5009/tcp
+   ```
+
+#### Running Benchmarks
+On each machine, execute:
+
+```bash
+./average_bench.sh <protocol> poseidon2 <num_parties> <party_index> <num_runs>
+```
+
+Where:
+- `<protocol>`: Protocol name (e.g., `malicious-shamir-party.x`)
+- `<num_parties>`: Total number of parties
+- `<party_index>`: Index of the machine (starting from 0)
+- `<num_runs>`: Number of benchmark runs
+
+---
+
+By following these instructions, the Poseidon2 hash function can be evaluated over different MPC protocols in a distributed setup.
