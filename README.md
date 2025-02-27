@@ -4,15 +4,13 @@ Research project on practical threshold hash-based signatures for distributed va
 
 ## Poseidon2 over MPC
 
-Experimental benchmarks were conducted using the [MP-SPDZ framework](https://github.com/data61/MP-SPDZ).
-
 ### Implementation
 
-The file `poseidon2.mpc` implements the Poseidon2 hash function for the MP-SPDZ framework and is intended to be copied into the `MP-SPDZ/Programs/Source` directory. It supports the following prime fields:
+The file `poseidon2.mpc` implements the Poseidon2 hash function for the [MP-SPDZ framework](https://github.com/data61/MP-SPDZ) and is intended to be copied into the `MP-SPDZ/Programs/Source` directory. It supports the following 31-bit prime fields:
 
 - Mersenne31
 - BabyBear
-- KoalaBear (31-bit primes)
+- KoalaBear
 
 This implementation focuses on hash chain calculations as required by XMSS signatures.
 
@@ -30,19 +28,19 @@ Where:
 
 ### Protocol Execution
 
-To execute the protocol, use the following command:
+To run a calculation over MPC with a specific protocol, use the following command:
 
 ```bash
 ./Scripts/<protocol>.sh poseidon2 -N <n> -S 31 -v
 ```
 
 Where:
-- `<protocol>`: Protocol name (e.g., `malicious-shamir-party.x`)
+- `<protocol>`: Protocol name (e.g., `mascot`)
 - `<n>`: Number of parties for the MPC calculation
 
 ### Benchmarking Across Machines
 
-For benchmarking across multiple machines, the repository provides the `average_bench.sh` script. This script runs the protocol for a specified number of iterations to average the results.
+For benchmarking across multiple machines, the repository provides a script `average_bench.sh` to run the calculation for a specified number of iterations and average the results.
 
 #### Setup Instructions
 1. Run the SSL setup script on one machine:
@@ -78,6 +76,3 @@ Where:
 - `<party_index>`: Index of the machine (starting from 0)
 - `<num_runs>`: Number of benchmark runs
 
----
-
-By following these instructions, the Poseidon2 hash function can be evaluated over different MPC protocols in a distributed setup.
