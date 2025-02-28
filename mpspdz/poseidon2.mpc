@@ -148,7 +148,7 @@ class Poseidon2:
 
     def hash_chain(self, input, chainlen):
         output = input
-        for i in range(chainlen):
+        for _ in range(chainlen):
             output = self.compress_hash(output)
         return output
 
@@ -240,18 +240,10 @@ else:
 
 poseidon2 = Poseidon2(p, t, Me, Mi, round_constants)
 
-
-state = sint.Array(t)
-for i in range(t):
-    state[i] = sint(i)
-
-state2 = sint.Array(t)
-for i in range(t):
-    state2[i] = sint(i)
-
 program.name = "poseidon2"
 print("Compiling: for p = " + str(p))
 
+'''
 if w == 1:
     message = [1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0]
 elif w == 2:
@@ -260,16 +252,15 @@ elif w == 4:
     message = [10, 4, 3, 5, 12, 13, 7, 13, 12, 0, 13, 2, 15, 13, 8, 8, 7, 0, 15, 13, 8, 12, 9, 15, 0, 2, 10, 10, 13, 8, 6, 13, 3, 15, 9, 12, 8, 14, 1, 9, 5, 2]
 else:
     message = [13, 131, 189, 250, 49, 50, 16, 220, 97, 136, 55, 7, 74, 63, 94, 171, 68, 174, 200, 236, 28, 104]
+'''
 
 
 secret_keys = [sint.Array(t) for _ in range(chunks)]
 
-for m in message:
-    print(m)
+message = [random.randint(0,2**w-1) for _ in range(chunks)]
 
 for _ in range(chunks):
     secret_keys.append(sint.Array(t))
-
 
 start_timer(1)
 
@@ -278,9 +269,3 @@ for c in range(chunks):
     sig.append(poseidon2.hash_chain(secret_keys[c], message[c]))
 
 stop_timer(1)
-
-'''
-test = output.reveal()
-for i in test:
-    i.print_reg()
-'''
