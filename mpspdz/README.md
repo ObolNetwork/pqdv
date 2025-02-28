@@ -34,41 +34,14 @@ Where:
 - `<protocol>`: Protocol name (e.g., `mascot`)
 - `<n>`: Number of parties for the MPC calculation
 
-### Benchmarking Across Machines
-
-For benchmarking across multiple machines, the repository provides a script `average_bench.sh` to run the calculation for a specified number of iterations and average the results.
-
-#### Setup Instructions
-1. Run the SSL setup script on one machine:
-
-   ```bash
-   ./Scripts/setup-ssl.sh
-   ```
-
-2. Copy the generated keys and certificates from `MP-SPDZ/Player-Data` to the other machines.
-3. On each machine, run:
-
-   ```bash
-   c_rehash MP-SPDZ/Player-Data
-   ```
-
-4. Create a `HOSTS` file listing the IP addresses of all players.
-5. Allow TCP traffic on ports 5000–5009 if necessary:
-
-   ```bash
-   sudo ufw allow 5000:5009/tcp
-   ```
-
-#### Running Benchmarks
-On each machine, execute:
+It is also possible to average the timing results of multiple executions by running
 
 ```bash
-./average_bench.sh <protocol> poseidon2 <num_parties> <party_index> <num_runs>
+./average_bench.sh <protocol> poseidon2 <num_parties> <num_runs>
 ```
 
 Where:
-- `<protocol>`: Protocol name (e.g., `malicious-shamir-party.x`)
+- `<protocol>`: Protocol name that should correspond to a script in the `MP-SPDZ/Scripts` directory (e.g., `mascot`, `mal-shamir`, ...)
 - `<num_parties>`: Total number of parties
-- `<party_index>`: Index of the machine (starting from 0)
 - `<num_runs>`: Number of benchmark runs
 
