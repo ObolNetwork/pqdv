@@ -1,26 +1,24 @@
 #!/bin/bash
 
-if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 <protocol> <program> <num_parties> <party_index> <num_runs>"
+if [ "$#" -ne 4 ]; then
+    echo "Usage: $0 <protocol> <program> <num_parties> <num_runs>"
     exit 1
 fi
 
 PROTOCOL=$1
 PROGRAM=$2
 NUM_PARTIES=$3
-PARTY_INDEX=$4
-NUM_RUNS=$5
-HOSTS_FILE="HOSTS"  # Modify if necessary
+NUM_RUNS=$4
 SECURITY_PARAM=31    # Modify if necessary
 
 total_online_time=0
 total_offline_time=0
-LOG_FILE="mpc_bench_log_$PARTY_INDEX.txt"
+LOG_FILE="mpc_bench_log_$PROTOCOL_$NUM_PARTIES.txt"
 
 for ((i=1; i<=NUM_RUNS; i++)); do
     echo "Run $i/$NUM_RUNS..."
 
-    ./$PROTOCOL -p $PARTY_INDEX $PROGRAM -ip $HOSTS_FILE -N $NUM_PARTIES -S $SECURITY_PARAM -v  > "$LOG_FILE" 2>&1
+    ./Scripts/$PROTOCOL.sh $PROGRAM -N $NUM_PARTIES -S $SECURITY_PARAM -v  > "$LOG_FILE" 2>&1
     
     sleep .5
 
