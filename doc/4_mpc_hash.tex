@@ -53,20 +53,18 @@ Benchmarking MPC protocols is challenging as their efficiency not only depends o
 Because only nonlinear operations require communication between participants, the number of multiplications provides a good performance indicator.
 If a multiplication usually requires one communication round along with some precomputed data (\textit{i.e.}, Beaver triples), in the case of exponentiation it is possible to lower the number of communication rounds at the cost of more precomputation.
 Therefore, the technique employed to compute $x^d$ has a significant impact on performance.
-To estimate the number of communication rounds required for \PoseidonTwoPi over 31-bit prime fields, we used the MP-SPDZ framework~\cite{mp-spdz}\footnote{\url{https://github.com/data61/MP-SPDZ}} with the MASCOT protocol~\cite{mascot} which provides active security.
-The \PoseidonTwoPi implementation, meant to be compiled by MP-SPDZ, is available at \url{https://github.com/ObolNetwork/pqdv/blob/main/poseidon2.mpc}.
 We considered three different 31-bit prime fields which enable highly efficient implementation techniques, namely Mersenne31, KoalaBear and BabyBear.
 As reported in Table~\ref{tab:poseidon2_inst31}, even though the KoalaBear prime field leads to the highest number of rounds, it is actually more MPC-friendly\footnote{KoalaBear and BabyBear primes also show advantages over Mersenne31 when it comes to SNARKS thanks to their two-adic multiplactive subgroups for Cooley-Tukey NTTs.} than the two others thanks to its minimal $d$ value.
-Having now an idea on the number of communication rounds per permutation, it is necessary to evaluate how many permutation calls are needed to sign a message (it actually also matters for DKG, but we will assume it is not an issue at this stage as it suffers less timing constraints).
+Having now an idea on the number of multiplications per permutation, it is necessary to evaluate how many permutation calls are needed to sign a message (it actually also matters for DKG, but we will assume it is not an issue at this stage as it suffers less timing constraints).
 To do so, we rely on the \XMSS instantiations with \PoseidonTwo from~\cite{cryptoeprint:2025/055} and use a script developped by the authors\footnote{\url{https://github.com/b-wagn/hashsig-parameters}} to calculate the number of permutation calls to sign a message in the average case.
 According to the instantiations considered in Table~\ref{tab:xmss_poseidon2_permcalls}, on average, the number of permutation calls for hash chains is at least 78.
 While at first glance it seems that $78 \cdot 30 = 2\,340$ communication rounds are required to generate a signature, a single communication round can actually be used for multiple multiplications as long as they do not depend on each other.
 In the case of hash-based signature, since each chunk is processed independently, it is possible to leverage these parallelization capabilities at the chunk level.
 Still, in the worst case where a $w$-bit chunk has value $2^w-1$, then at least $(2^w-1) \cdot 30$ rounds will be needed anyway due to the nature of hash chains.
 Like all hash-based signatures schemes, instantiations with low $w$ parameter (typically $w \in \{1,2\}$) are the most MPC-friendly as they require fewer hash calls.
-On the other hand, they lead to very a large signature size and will likely not be considered for deployment on the Ethereum beacon chain for this reason.
-Among the instantiations listed in Table~\ref{tab:xmss_poseidon2_permcalls}, the ones with $w=4$ seem the most promising as they provide a nice trade-off between signature size and running time.
-By leveraging parallelization capabilities, it would require $16 \cdot 30 = 480$ communication rounds to generate a signature, assuming KoalaBear prime field.
+To get concrete performance numbers, we used the MP-SPDZ framework~\cite{mp-spdz}\footnote{\url{https://github.com/data61/MP-SPDZ}} and considered the ATLAS~\cite{atlas2021}, MASCOT~\cite{mascot2016} and Malicious Shamir~\cite{malshamir2017} protocols which provide passive security in honest majority, active security in dishonest majority and active security in honest majority, respectively.
+The \PoseidonTwoPi implementation meant to be compiled by MP-SPDZ, is available at \url{https://github.com/ObolNetwork/pqdv/blob/main/mpspdz/poseidon2.mpc}.
+The benchmark, whose speed and data results are reported in Figure~\ref{fig:mpspdz-time} and Figure~\ref{fig:mpspdz-data}, respectively, was run in LAN network with a 15ms delay along with a 2ms jitter to reproduce real world conditions.
 
 \renewcommand\arraystretch{1.25}
 \begin{table}[t]
@@ -74,7 +72,7 @@ By leveraging parallelization capabilities, it would require $16 \cdot 30 = 480$
 	\begin{tabular}{cccccccc}
 		\toprule
     		\textbf{Prime} $p$ & \multicolumn{4}{c}{\textbf{Parameters}} & \textbf{Sbox impl.} & \multicolumn{2}{c}{\textbf{MPC cost metrics}}\\
-    		 & {$t$} & {$d$} & {$R_F$} & {$R_P$} & & (triples, squares) & com. rounds\\
+    		 & {$t$} & {$d$} & {$R_F$} & {$R_P$} & & (triples, squares) & multiplications\\
     		\midrule
    
     		& 16 &  & & 20 &  & $(148, 148)$ & 30 \\
@@ -88,7 +86,7 @@ By leveraging parallelization capabilities, it would require $16 \cdot 30 = 480$
     		& 16 & & & 13 &  & $(423, 141)$ & 63\\
     		\multirow{-2}{*}{$2^{31}-2^{27} + 1$}  & 24  & \multirow{-2}{*}{7} & \multirow{-2}{*}{8} & 21 &  \multirow{-2}{*}{$(x^2)^3 \cdot x$ }  & $(639, 213)$  & 87\\
     		\bottomrule
-	\end{tabular}
+	\end{tabular}fig:mpspdz-time
 	\caption{\PoseidonTwoPi parameters for 31-bit prime fields.\label{tab:poseidon2_inst31}}
 \end{table}
 
@@ -98,25 +96,60 @@ By leveraging parallelization capabilities, it would require $16 \cdot 30 = 480$
 \begin{table}[h]
 	\centering
   	%\resizebox{\textwidth}{!}{  
-	\begin{tabular}{cccccc}
+	\begin{tabular}{cccc}
 		\toprule
-    		\textbf{Encoding} & \multicolumn{2}{c}{\textbf{Parameters}} & \multicolumn{2}{c}{\textbf{Sig. size} (KiB)}  & \textbf{Perm. calls} \\
-    		 & {$w$} & chunks  & $L=2^{18}$ & $ L=2^{20}$ & (average case)   \\
+    		\textbf{Encoding} & \multicolumn{2}{c}{\textbf{Parameters}}  & \textbf{Perm. calls} \\
+    		 & {$w$} & chunks  & (average case)   \\
     		\midrule
-	     &  1 & 163 & 4.97 & 5.03 & 81    \\
-	     &  2 & 82  & 2.75 & 2.81 & 123 \\
-	     &  4 & 42  & 1.66 & 1.72 & 303 \\
-	 \multirow{-4}{*}{W}  & 8 & 22 & 1.11 & 1.34 & 2676 \\
+	     &  1 & 163 & 81    \\
+	     &  2 & 82  & 123 \\
+	     &  4 & 42  & 303 \\
+	 \multirow{-4}{*}{W}  & 8 & 22 & 2676 \\
 	 \midrule
- 	   &  1 & 155 & 4.75 & 4.81 & 78   \\
-	   &  2 & 78  & 2.65 & 2.7  & 117  \\
-	   &  4 & 39  & 1.58 & 1.64 & 293  \\
-	 \multirow{-4}{*}{TSW ($\delta = 1$)}  &  8 & 20 & 1.06 & 1.27 & 2550  \\
+ 	   &  1 & 155 &  78   \\
+	   &  2 & 78  &  117  \\
+	   &  4 & 39  &  293  \\
+	 \multirow{-4}{*}{TSW}  &  8 & 20 & 2550  \\
 	\hline
 	\end{tabular}
 	%}
-	\caption{Generalized \XMSS instantiations with \PoseidonTwo over a 31-bit prime field. The reported number of permutation calls only considers hash chains during signature generation. For signature sizes, we consider two different leaf numbers, namely $L \in \{2^{18}, 2^{20}\}$. Regarding encodings, we refer to the original publication~\cite{cryptoeprint:2025/055} for more details.\label{tab:xmss_poseidon2_permcalls}}
+	\caption{Generalized \XMSS instantiations with \PoseidonTwo over a 31-bit prime field. The reported number of permutation calls only considers hash chains during signature generation. Regarding encodings, we refer to the original publication~\cite{cryptoeprint:2025/055} for more details.\label{tab:xmss_poseidon2_permcalls}}
 \end{table}
+
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    ymax=15,
+    enlargelimits=0.15,
+    legend style={at={(0.5,-0.15)},
+      anchor=north,legend columns=-1},
+    ylabel={time (seconds)},
+    symbolic x coords={TSW-1,TSW-2,TSW-4},
+    xtick=data,
+    restrict y to domain*=0:20, % Cut values off at 20
+    visualization depends on=rawy\as\rawy, % Save the unclipped values
+    after end axis/.code={ % Draw line indicating break
+            \draw [ultra thick, white, decoration={snake, amplitude=1pt}, decorate] (rel axis cs:0,1.05) -- (rel axis cs:1,1.05);
+        },
+    nodes near coords={%
+            \pgfmathprintnumber{\rawy}% Print unclipped values
+        },
+    nodes near coords align={vertical},
+    axis lines*=left,
+    clip=false
+    ]
+\addplot coordinates {(TSW-1,1.1) (TSW-2,3) (TSW-4,14.6)};
+\addplot coordinates {(TSW-1,0.6) (TSW-2,1.6) (TSW-4,7.7)};
+\addplot coordinates {(TSW-1,3.7) (TSW-2,10.6) (TSW-4,49.7)};
+\legend{ATLAS, Malicious Shamir, MASCOT}
+\end{axis}
+\end{tikzpicture}
+\caption{MP-SPDZ benchmark results for \PoseidonTwo hash chains calculations over MPC (online phase only) to sign a single message. Timing results are averaged over 10 runs in a network with 15ms delay.\label{fig:mpspdz-time}}
+\end{figure}
+
 
 \newpage
 
@@ -151,69 +184,3 @@ For the instantiations reported in Table~\ref{tab:xmss_poseidon2_permcalls}, whe
 %\end{table}
 
 
-\begin{figure}
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    ybar,
-    ymax=15,
-    enlargelimits=0.15,
-    legend style={at={(0.5,-0.15)},
-      anchor=north,legend columns=-1},
-    ylabel={time (seconds)},
-    symbolic x coords={TSW-1,TSW-2,TSW-4},
-    xtick=data,
-    restrict y to domain*=0:20, % Cut values off at 20
-    visualization depends on=rawy\as\rawy, % Save the unclipped values
-    after end axis/.code={ % Draw line indicating break
-            \draw [ultra thick, white, decoration={snake, amplitude=1pt}, decorate] (rel axis cs:0,1.05) -- (rel axis cs:1,1.05);
-        },
-    nodes near coords={%
-            \pgfmathprintnumber{\rawy}% Print unclipped values
-        },
-    nodes near coords align={vertical},
-    axis lines*=left,
-    clip=false
-    ]
-\addplot coordinates {(TSW-1,1.1) (TSW-2,3) (TSW-4,14.6)};
-\addplot coordinates {(TSW-1,0.6) (TSW-2,1.6) (TSW-4,7.7)};
-\addplot coordinates {(TSW-1,3.7) (TSW-2,10.6) (TSW-4,49.7)};
-\legend{ATLAS, Malicious Shamir, MASCOT}
-\end{axis}
-\end{tikzpicture}
-\caption{Benchmark results for hash chains calculations over MPC (online phase only) to sign a single message. Timing results are averaged over 10 runs in a network with 30ms delay.}
-\end{figure}
-
-
-\begin{figure}
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    ybar,
-    ymax=15,
-    enlargelimits=0.15,
-    legend style={at={(0.5,-0.15)},
-      anchor=north,legend columns=-1},
-    ylabel={time (seconds)},
-    symbolic x coords={TSW-1,TSW-2,TSW-4},
-    xtick=data,
-    restrict y to domain*=0:20, % Cut values off at 20
-    visualization depends on=rawy\as\rawy, % Save the unclipped values
-    after end axis/.code={ % Draw line indicating break
-            \draw [ultra thick, white, decoration={snake, amplitude=1pt}, decorate] (rel axis cs:0,1.05) -- (rel axis cs:1,1.05);
-        },
-    nodes near coords={%
-            \pgfmathprintnumber{\rawy}% Print unclipped values
-        },
-    nodes near coords align={vertical},
-    axis lines*=left,
-    clip=false
-    ]
-\addplot coordinates {(TSW-1,1.1) (TSW-2,3) (TSW-4,14.6)};
-\addplot coordinates {(TSW-1,0.6) (TSW-2,1.6) (TSW-4,7.7)};
-\addplot coordinates {(TSW-1,3.7) (TSW-2,10.6) (TSW-4,49.7)};
-\legend{ATLAS, Malicious Shamir, MASCOT}
-\end{axis}
-\end{tikzpicture}
-\caption{Benchmark results for hash chains calculations over MPC (offline phase only) to sign a single message. Timing results are averaged over 10 runs in a network with 30ms delay.}
-\end{figure}
