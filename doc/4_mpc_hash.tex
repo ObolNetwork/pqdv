@@ -64,7 +64,7 @@ Still, in the worst case where a $w$-bit chunk has value $2^w-1$, then at least 
 Like all hash-based signatures schemes, instantiations with low $w$ parameter (typically $w \in \{1,2\}$) are the most MPC-friendly as they require fewer hash calls.
 To get concrete performance numbers, we used the MP-SPDZ framework~\cite{mp-spdz}\footnote{\url{https://github.com/data61/MP-SPDZ}} and considered the ATLAS~\cite{atlas2021}, MASCOT~\cite{mascot2016} and Malicious Shamir~\cite{malshamir2017} protocols which provide passive security in honest majority, active security in dishonest majority and active security in honest majority, respectively.
 The \PoseidonTwoPi implementation meant to be compiled by MP-SPDZ, is available at \url{https://github.com/ObolNetwork/pqdv/blob/main/mpspdz/poseidon2.mpc}.
-The benchmark, whose speed and data results are reported in Figure~\ref{fig:mpspdz-time} and Figure~\ref{fig:mpspdz-data}, respectively, was run in LAN network with a 15ms delay along with a 2ms jitter to reproduce real world conditions.
+The benchmark, whose speed and data results are reported in Table~\ref{tab:mpspdz}, was run in LAN network with a 15ms delay along with a 2ms jitter to reproduce real world conditions.
 
 \renewcommand\arraystretch{1.25}
 \begin{table}[t]
@@ -86,7 +86,7 @@ The benchmark, whose speed and data results are reported in Figure~\ref{fig:mpsp
     		& 16 & & & 13 &  & $(423, 141)$ & 63\\
     		\multirow{-2}{*}{$2^{31}-2^{27} + 1$}  & 24  & \multirow{-2}{*}{7} & \multirow{-2}{*}{8} & 21 &  \multirow{-2}{*}{$(x^2)^3 \cdot x$ }  & $(639, 213)$  & 87\\
     		\bottomrule
-	\end{tabular}fig:mpspdz-time
+	\end{tabular}
 	\caption{\PoseidonTwoPi parameters for 31-bit prime fields.\label{tab:poseidon2_inst31}}
 \end{table}
 
@@ -125,15 +125,15 @@ The benchmark, whose speed and data results are reported in Figure~\ref{fig:mpsp
 	\begin{tabular}{cccccc|ccc|cc}
 		\toprule
     		\multicolumn{2}{c}{\textbf{\XMSS instance}} & \textbf{MPC Protocol} & \multicolumn{3}{c}{\textbf{Offline}} & \multicolumn{3}{c}{\textbf{Online}}  & \multicolumn{2}{c}{\textbf{Combined}} \\
-    		Encoding & $w$ & & Prec. & Time (ms) & Data (MB) & Depth & Time (ms) & Data (MB) & Time (ms) & Data (MB)  \\
+    		Encoding & $w$ & & Prec. & Time (ms) & Data (MB) & Depth & Time (ms) & Data (MB) & Time (s) & Data (MB)  \\
     		\midrule
     		& & ATLAS & & & & & & & & \\
     		& & Mal Shamir & & & & & & & & \\
 	 \multirow{-3}{*}{TSW} & \multirow{-3}{*}{1} & MASCOT & & & & & & & & \\
 	 \midrule
-    		& & ATLAS & $15\,540$ & $317$ & $0.32$ & 117 & $2\,980$ & $0.71$ & &  \\
-    		& & Mal Shamir & $31\,080$ & $692$ & $3.45$ & 86 & $1\,544$ & $1.49$ & & \\
-	 \multirow{-3}{*}{TSW} & \multirow{-3}{*}{2} & MASCOT & $31\,080$ & $13\,772$ & $453.41$ & $1\,025$ &  $10\,100$ & $1.52$ & & \\
+    		& & ATLAS & $15\,540$ & $0.32$ & $0.32$ & 117 & $2.98$ & $0.71$ & $3.30$ & $1.03$ \\
+    		& & Mal Shamir & $31\,080$ & $0.69$ & $3.45$ & 86 & $1.54$ & $1.49$ &  $2.23$ & $4.94$ \\
+	 \multirow{-3}{*}{TSW} & \multirow{-3}{*}{2} & MASCOT & $31\,080$ & $13.77$ & $453.41$ & $1\,025$ &  $10.10$ & $1.52$ & $23.87$ & $454.93$ \\
 	 \midrule
     		& & ATLAS & & & & & & & & \\
     		& & Mal Shamir & & & & & & & & \\
@@ -141,16 +141,17 @@ The benchmark, whose speed and data results are reported in Figure~\ref{fig:mpsp
 	\hline
 	\end{tabular}
 	}
-	\caption{}
+	\caption{Benchmarks of a random message signature generation over MPC using the MP-SPDZ framework. Only hash chains are considered (\textit{i.e.}, calculations that do not require MPC are not taken into account). Results were obtained by averaging the timing results over 10 executions where network conditions are defined by a 15ms delay with a 2ms jitter.\label{tab:mpspdz}}
 \end{table}
 
 
-\newpage
-
-\paragraph{Precomputed hash chains.}
+\paragraph{Time-memory tradeoffs.}
 As mentioned in the previous section, another alternative would be to precompute all hash chain intermediate values, for each secret key and for every possible chunk.
-Therefore the memory usage would be $L \cdot (2^w-1) \cdot \#\mathsf{chunks}$ digests where $L$ refers to the number of leafs in the Merkle tree.
-For the instantiations reported in Table~\ref{tab:xmss_poseidon2_permcalls}, where hashs are composed of either 7 or 8 field elements, it requires $\approx 2, 2, 4, 40$ GiB for $L= 2^{18}$ and $w = 1, 2, 4, 8$ respectively.
+Therefore the memory usage would be $(2^w-1) \cdot \#\mathsf{chunks}$ digests per one-time key.
+For the TSW-2 instantiation where digests are composed of 7 31-bit field elements, it means $(78 \cdot 4 \cdot 7 \cdot 31)/8 = 8\,463$ bytes per one-time key.
+Depending on the Merkle tree height, this might lead to considerable memory requirement (\textit{e.g.}, more than 8GiB for $2^{20}$ leafs).
+An in-between solution could be to not store all the intermediate values at key generation time but to recompute them ahead of the signing process.
+That way, the only data that requires storage at the end of the key generation process are the one-time public keys (plus the secret seed if the one-time keys are derived using a PRF). 
 
 %\renewcommand\arraystretch{1.25}
 %\begin{table}[htbp]
