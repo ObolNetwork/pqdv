@@ -44,4 +44,3 @@ Where:
 - `<protocol>`: Protocol name that should correspond to a script in the `MP-SPDZ/Scripts` directory (e.g., `mascot`, `mal-shamir`, ...)
 - `<num_parties>`: Total number of parties
 - `<num_runs>`: Number of benchmark runs
-
