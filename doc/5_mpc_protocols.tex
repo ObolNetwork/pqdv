@@ -1,0 +1,15 @@
+\section{MPC protocols for distributed validators}
+MPC protocols greatly differ based on their security, adversarial and network assumptions. This section aims at identifying the relevant properties in the case of distributed validators in order to shortlist the most meaningful protocolsS.
+\subsection{Security model}
+\paragraph{Adversarial structure.}
+Let $n$ denote the number of participating parties and let $t$ denote a bound on the number of parties that may be corrupted.
+MPC protocols are usually designed to provide security in either the dishonest (i.e., $t < n$), honest (i.e., $t < n/2$) or two-thirds honest (i.e., $t < n/3$) majority settings.
+While dishonest-majority protocols offer the strongest security guarantees, they come at a significant cost.
+Restricting the model to an honest majority, however, enables substantial performance improvements.
+Thus, it is crucial to determine whether a dishonest-majority setting is truly necessary to achieve optimal efficiency.
+Regarding distributed validators, it is important to note that they rely not only on a threshold signature scheme (TSS) but also on a consensus algorithm, which ensures that all parties agree on the same message to be  signed.
+%Therefore, it is important to clearly state the
+ 
+\paragraph{Adversarial behaviour.}
+
+\paragraph{Security assumption.}
