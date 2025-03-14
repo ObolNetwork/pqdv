@@ -7,9 +7,24 @@ MPC protocols are usually designed to provide security in either the dishonest (
 While dishonest-majority protocols offer the strongest security guarantees, they come at a significant cost.
 Restricting the model to an honest majority, however, enables substantial performance improvements.
 Thus, it is crucial to determine whether a dishonest-majority setting is truly necessary to achieve optimal efficiency.
-Regarding distributed validators, it is important to note that they rely not only on a threshold signature scheme (TSS) but also on a consensus algorithm, which ensures that all parties agree on the same message to be  signed.
-%Therefore, it is important to clearly state the
+Regarding distributed validators, it is important to note that they rely not only on a threshold signature scheme (TSS) but also on a consensus algorithm\footnote{\url{https://github.com/ethereum/distributed-validator-specs}}, which ensures that all parties agree on the same message to be  signed.
+It is well known that, in an asynchronous network, Byzantine fault tolerance (BFT) can only be achieved if $t < n/3$~\cite{10.1145/322186.322188}.
+Therefore, considering a two-thirds honest majority for the MPC computation of the signature aligns well with BFT assumptions.
+%However, if crash fault tolerance (CFT) is sufficient instead of BFT, the fault tolerance threshold may increase and considering an honest majority would allow the system to tolerate more faulty parties.
  
 \paragraph{Adversarial behaviour.}
+In the MPC litterature, corrupted parties are either considered malicious/active if they behave arbitrarily (\textit{i.e.}, they can deviate from the protocol) or semi-honest/passive if they follow the protocol but combine their respective information to learn more than they should be allowed to.
+To ensure general compatibility with BFT consensus protocols, we aim for malicious security.
+Still, protocols in the semi-honest model can be of interest for their efficiency if crash fault tolerance (CFT) suffices.
 
 \paragraph{Security assumption.}
+The security of an MPC protocol can rely on different assumptions. It can be \textit{computational} secure, meaning that it depends on the hardness of specific mathematical problems (\textit{e.g.}, factoring large numbers), or it can be \textit{information-theoretic} secure, meaning that it achieves security based on principles of information theory without relying on computational hardness.
+Since we aim at computing a post-quantum signature scheme in an MPC fashion, we aim for an information-theoretic secure MPC protocol as it is not vulnerable against quantum computers.
+%While the information-theoretic setting provides the highest security, it is not always possible to achieve and requires an honest majority.
+
+\subsection{Protocol candidates}
+Below we list MPC protocols that achieve information-theoretic malicious security in the (two-thirds) honest majority setting.
+
+\paragraph{ATLAS.}
+
+\paragraph{TurboPack.}
