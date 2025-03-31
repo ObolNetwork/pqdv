@@ -44,15 +44,15 @@ For our study, we considered the \XMSS instances from~\cite{cryptoeprint:2025/05
 	\centering
   	%\resizebox{\textwidth}{!}{  
 	\begin{tabular}{ccccc}
-		\toprule
-    		\multicolumn{2}{c}{\textbf{Parameters}}  & \multicolumn{3}{c}{\textbf{MPC metrics}} \\
-    		 {$w$} & chunks  &  depth & triples (WC) & triples (AC) \\
-    		\midrule
+	\toprule
+    	\multicolumn{2}{c}{\textbf{Parameters}}  & \multicolumn{3}{c}{\textbf{MPC metrics}} \\
+    	{$w$} & chunks  &  depth & triples (WC) & triples (AC) \\
+    	\midrule
  	 1 & 155 &  28  & $45\,880$     & $22\,940$ \\
 	 2 & 78  &  84  & $69\,264$     & $34\,632$ \\
 	 4 & 39  &  420 & $173\,160$    & $86\,580$ \\
 	 8 & 20  & 7140 & $1\,509\,600$ & $754\,800$ \\
-	\hline
+	\bottomrule
 	\end{tabular}
 	%}
 	\caption{MPC metrics for \XMSS signature generations when instantiated with \PoseidonTwo over a 31-bit prime field, using the target-sum encoding. The number of preprocessing triples are reported for both the worst case (\textit{i.e.}, all chunks equal $2^w-1$) and the average case.\label{tab:xmss_sig_tsw}}
@@ -143,4 +143,6 @@ Still, while bandwidth was not a major concern for signature generation, it beco
 This gives an advantage to the ATLAS protocol which reduces the amount of precomputed data in the offline phase by half, lowering the amount of data transferred by an order of magnitude compared to malicious Shamir (although it doubles the number of online communication rounds while providing only passive security).
 While the distinction between the offline and online phases is less obvious in DKG compared to signature generation, it is still worth distinguishing between the two.
 Indeed, since DKG is run only once, it may be reasonable to assume that a trusted third party provides all parties with the preprocessed data so that they can directly proceed to the online phase.
-According to the practical results from our benchmark, having a tree composed of $2^{20}$ \WOTS keys would take $
+According to the practical results from our benchmark, online performance estimates for wider Merkle trees with say  $2^{20}$ leafs, would lead to 4 and 12 days of calculations for $w = 1$ and $w = 2$ respectively, assuming the malicious Shamir protocol.
+Again, one might expect faster performance thanks to better parallelization that would lead to fewer communication rounds.
+Therefore, using a custom implementation instead of the MP-SPDZ framework would be necessary to explore the limits in terms of parallelization under different network conditions.
