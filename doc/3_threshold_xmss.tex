@@ -71,12 +71,11 @@ Output parameters:
 \end{algorithm}
 
 \subsection{Leveraging secret sharing}
-Another approach is to leverage a secret sharing scheme to split \WOTS secret keys into shares distributed among participants.
+Another approach is to leverage a linear secret sharing scheme to split \WOTS secret keys into shares distributed among participants.
 However, it requires to jointly compute all hash function calls in a multi-party computation (MPC) setting.
-%However, the difficulty arises when Merkle trees come into play: computing Merkle paths from secret key shares requires to process all hash function calls in a multi-party computation (MPC) fashion.
 This can be very challenging in practice, especially in low latency scenarios such as performing validator duties on Ethereum, as the time to produce a threshold signature may largely exceed the requirements (see \textit{e.g.} the work from Cozzo and Smart~\cite{sharing_luov19} which estimates around 85 minutes to compute a threshold \textsf{SPHINCS+} signature with \textsf{SHA-3} as the underlying hash function).
 A possible workaround could be to store all secret keys calculated during key generation, so that it is possible to sign messages efficiently without any online MPC calculation.
-However, as highlighted in Table~\ref{tab:poseidon2_inst31}, this could lead to unrealistic memory usage as it requires to precompute secret keys for every possible chunk value, and this for all tree leafs.
+However, this could lead to unrealistic memory usage as it requires to precompute secret keys for every possible chunk value, and this for all tree leafs.
 Since tree nodes are not considered secret material thanks to the preimage resistance of the underlying hash function, a more pragmatic approach would be to only store the plain (\textit{i.e.}, non-shared) leafs value so that signers will be able to calculate Merkle paths in a non-distributed manner when generating signatures.
 Nevertheless, in the case of DKGs, this still requires computing all hash function calls over MPC at key generation time.
 A comprehensive performance analysis of MPC hash functions is necessary to evaluate the timing constraints of DKG setups and to identify practical time-memory tradeoffs for signature generation.

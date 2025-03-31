@@ -1,0 +1,146 @@
+\section{Experimental benchmarks}
+
+\subsection{Benchmarking conditions}
+\paragraph{The MP-SPDZ framework.}
+Benchmarking MPC protocols is challenging not only due to their technical complexity but also because their efficiency depends on various factors such as the security model, the number of participants and network conditions.
+In recent years, various frameworks have been developed to push the boundaries of practical MPC by making it more accessible.
+Among them, MP-SPDZ~\cite{mp-spdz} is very popular and actively maintained in an open source manner\footnote{\url{https://github.com/data61/MP-SPDZ}}.
+Users can write programs in high-level Python code, which is then extensively optimized and compiled into bytecode for a virtual machine implemented in C++.
+The framework implements a wide variety of protocols for several different security models, for both protocols based on secret sharing and garbled circuits.
+For our benchmarks, we opted for the ATLAS~\cite{atlas2021} and malicious Shamir\footnote{Note that the \texttt{malicious-shamir} protocol from MP-SPDZ relies on another protocol for the preprocessing phase, see \url{https://github.com/data61/MP-SPDZ/issues/386\#issuecomment-935384621}.}\cite{malshamir2017} protocols which provide passive and active security, respectively, in the honest majority setting.
+Note that while ATLAS also comes in a version which provides active security, it is not supported by MP-SPDZ at the time of writing\footnote{\url{https://github.com/data61/MP-SPDZ/issues/1578}}.
+
+%\renewcommand\arraystretch{1.25}
+%\begin{table}[p]
+%	\centering
+%  	%\resizebox{\textwidth}{!}{  
+%	\begin{tabular}{ccccc}
+%	\toprule
+%	\textbf{Protocol} & \textbf{Majority} & \textbf{Security} & \textbf{Privacy} & \textbf{Output} \\
+%	\midrule
+%	ATLAS & $t < n/2$ & passive & perfect & security with abort \\
+%	malicious Shamir & $t < n/2$ & active & statistical & security with abort \\
+%	\bottomrule
+%	\end{tabular}
+%	%}
+%	\caption{\label{tab:atlas_vs_shamir}}
+%\end{table}
+
+\paragraph{Setup.}
+Benchmarks were run on an ASUS UX3405 laptop equipped with a Core Ultra 7 155H CPU.
+We simulate a five-party setting over a network with 10ms latency and 200Mbps bandwidth, reflecting a distributed setup with optimistic networking conditions.
+The code to be compiled with MP-SPDZ, is available at \url{https://github.com/ObolNetwork/pqdv/blob/main/mpspdz/poseidon2.mpc}.
+
+\subsection{One-time signature}
+\paragraph{Hash chains over MPC.}
+While Table~\ref{tab:poseidon2_inst31} provides the multiplicative depth for various \PoseidonTwo instantiations, it is for a \textit{single} permutation call only.
+In the case of \WOTS, the overall depth actually depends on the hash chains' length (\textit{i.e.}, the number of successive \PoseidonTwoPi calls).
+As detailed in Section~\ref{sec:hbs}, the length of each chain depends on the chunk value it signs and is therefore bounded by $2^w-1$, where $w$ refers to the Winternitz parameter which defines a trade-off between speed and signature size.
+Hence a greater value of $w$ implies a smaller signature but slower speeds and vice-versa.
+While the encoding method does not impact the multiplicative depth as chunks can be processed in parallel, it still affects overall efficiency as a higher number of chunks leads to more preprocessed triples and increased network bandwidth usage.
+For our study, we considered the \XMSS instances from~\cite{cryptoeprint:2025/055} with the constant-sum encoding scheme as it provides the optimal rate for \WOTS signatures~\cite{10.1007/978-3-031-38554-4_15} (\textit{i.e.}, it minimizes the number of encoded chunks and hence the signature size in the end) whose corresponding MPC metrics are reported in Table~\ref{tab:xmss_sig_tsw}.
+\renewcommand\arraystretch{1.25}
+\begin{table}[htbp]
+	\centering
+  	%\resizebox{\textwidth}{!}{  
+	\begin{tabular}{ccccc}
+		\toprule
+    		\multicolumn{2}{c}{\textbf{Parameters}}  & \multicolumn{3}{c}{\textbf{MPC metrics}} \\
+    		 {$w$} & chunks  &  depth & triples (WC) & triples (AC) \\
+    		\midrule
+ 	 1 & 155 &  28  & $45\,880$     & $22\,940$ \\
+	 2 & 78  &  84  & $69\,264$     & $34\,632$ \\
+	 4 & 39  &  420 & $173\,160$    & $86\,580$ \\
+	 8 & 20  & 7140 & $1\,509\,600$ & $754\,800$ \\
+	\hline
+	\end{tabular}
+	%}
+	\caption{MPC metrics for \XMSS signature generations when instantiated with \PoseidonTwo over a 31-bit prime field, using the target-sum encoding. The number of preprocessing triples are reported for both the worst case (\textit{i.e.}, all chunks equal $2^w-1$) and the average case.\label{tab:xmss_sig_tsw}}
+\end{table}
+
+\noindent Benchmark results for OTS generation are reported in Table~\ref{tab:mpspdz_sig} for $w \in \{1,2,4\}$ where all chunks are processed in parallel and take advantage of the same communication rounds.
+As expected, the timings are highly dominated by the network conditions, especially on latency rather than bandwidth as the number of communication rounds constitute the bottleneck, and therefore are close to $\mathtt{network\_latency} \times \#\mathtt{com\_rounds}$.
+Although signing over MPC can be achieved in less than a second for the smallest Winternitz parameter and assuming a network latency of 10ms, a greater $w$ value and less optimistic network conditions leads to multiple seconds.
+A potential workaround could be to precompute all hash chain intermediate values to avoid MPC calculations during the signature generation.
+
+
+\paragraph{Time-memory tradeoffs.}
+As mentioned in the previous section, another alternative would be to precompute all hash chain intermediate values, for each secret key and for every possible chunk.
+Therefore the memory requirement to store all hash chains' intermediate values, for each secret key and for every possible chunk, would be $2^w \cdot \mathsf{chunks}$ digests per one-time key.
+Assuming the target-sum encoding where digests are composed of 7 31-bit field elements, along with $w=2$ it would mean $(78 \cdot 4 \cdot 7 \cdot 31)/8 = 8\,463$ bytes per one-time key.
+Depending on the Merkle tree height, this might lead to considerable memory requirement (\textit{e.g.}, more than 8GiB for $2^{20}$ leafs).
+An in-between solution could be to not store \textit{all} the intermediate values but only some of them, at different positions within the chain.
+For instance restricting the storage to the values at the $i$-th positions only where $i \pmod w = 0$ would allow to reduce the storage requirement by a factor of $w$, while requiring at most $w$ \PoseidonTwoPi calls per chunks instead of $2^w-1$.
+
+
+\begin{landscape}
+\renewcommand\arraystretch{1.25}
+\begin{table}[p]
+	\centering
+  	\resizebox{1.6\textheight}{!}{  
+	\begin{tabular}{ccccccc|ccccc|cccc}
+		\toprule
+    		\multirow{3}{2cm}{\textbf{Winternitz parameter}} & \multirow{3}{*}{\textbf{Protocol}} & \multicolumn{5}{c}{\textbf{Offline phase}} & \multicolumn{5}{c}{\textbf{Online phase}}  & \multicolumn{4}{c}{\textbf{Combined}} \\
+    		 & & \multirow{2}{*}{Prec.} & \multicolumn{3}{c}{Time (s)} & \multirow{2}{*}{Data (MB)} & \multirow{2}{*}{Com. rounds} & \multicolumn{3}{c}{Time (s)} & \multirow{2}{*}{Data (MB)} & \multicolumn{3}{c}{Time (s)} & \multirow{2}{*}{Data (MB)}  \\
+    		& &  &$d = 10$ & $d = 50$ & $d = 100$  &  &  & $d = 10$ & $d = 50$ & $d = 100$ & & $d = 10$ & $d = 50$ & $d = 100$  &  \\
+    		\midrule
+    		                    & ATLAS            & $11\,396$ & 0.21 & 0.93 & 1.83 & 0.28 & 65 & 0.72 & 3.29 & 6.49 & 0.54 & 0.93 & 4.22 & 8.32 & 0.76 \\
+    		\multirow{-2}{*}{1} & malicious Shamir & $22\,792$ & 0.40 & 1.72 & 3.37 & 2.53 & 30 & 0.38 & 1.62 & 3.20 & 1.09 & 0.78 & 3.34 & 6.57 & 3.62 \\
+	 \midrule
+    		& ATLAS                                & $17\,316$ & 0.21 & 0.93 & 1.83 & 0.34 & 177 & 1.93 & 8.96 & 17.76 & 0.78 & 2.14 & 9.89 & 18.10 & 1.12 \\
+    		\multirow{-2}{*}{2} & malicious Shamir & $34\,632$ & 0.46 & 1.95 & 3.77 & 3.82 & 86  & 1.01 & 4.44 & 8.76  & 1.66 & 1.47 & 6.39 & 12.35 & 5.48 \\
+	 \midrule
+    		                    & ATLAS            & $43\,216$ & 0.39 & 1.72 & 3.37 & 0.84 & 855 & 9.11 & 43.33 & 86.06 & 1.96 & 9.50 & 45.05 & 89.43 & 2.80 \\
+    		\multirow{-2}{*}{4} & malicious Shamir & $86\,432$ & 1.01 & 4.12 & 8.00 & 9.47 & 422 & 4.63 & 21.59 & 42.73 & 4.15 & 4.64 & 25.71 & 50.73 & 13.62\\
+	\hline
+	\end{tabular}
+	}
+	\caption{Benchmarks of a random message signature generation over MPC using the MP-SPDZ framework, in a five-party setting. Only hash chains are considered (\textit{i.e.}, calculations that do not require MPC are not taken into account). Results were obtained by averaging the timing results over 10 executions for 3 different network delays (10, 50 and 100ms) to reflect various network conditions.\label{tab:mpspdz_sig}}
+\end{table}
+
+
+\begin{table}[p]
+	\centering
+  	\resizebox{1.3\textheight}{!}{  
+	\begin{tabular}{ccccccccccc}
+		\toprule
+    		\multirow{2}{2cm}{\textbf{Winternitz parameter}} & \multirow{2}{2cm}{\WOTS \textbf{keys}}& \multirow{2}{*}{\textbf{Protocol}} & \multicolumn{3}{c}{\textbf{Offline phase}} & \multicolumn{3}{c}{\textbf{Online phase}}  & \multicolumn{2}{c}{\textbf{Combined}} \\
+    		 & & & Prec. & Time (s) & Data (GB)  & Com. rounds & Time (s) & Data (GB) & Time (s) & Data (GB)  \\
+    		\midrule
+    		                    & & ATLAS & $2.34 \times 10^7$ & 153 & 0.42 & $6.40 \times 10^4$ & 717 & 1.05 & 870 & 1.47 \\
+    		                    & \multirow{-2}{*}{$2^{10}$} &\cellgray malicious Shamir &\cellgray $4.68 \times 10^7$ &\cellgray 500 &\cellgray 5.13 &\cellgray $2.96 \times 10^4$ &\cellgray 410 &\cellgray 2.25 &\cellgray 910&\cellgray 7.39\\
+    		                    & & ATLAS & $9.39 \times 10^7$  & 623 & 1.70 & $2.56 \times 10^5$ & $2\,934$ & 4.21 & $3\,557$ & 5.91 \\
+    		                    & \multirow{-2}{*}{$2^{12}$} &\cellgray malicious Shamir &\cellgray $18.79 \times 10^7$&\cellgray $2\,163$ &\cellgray 20.55 &\cellgray $1.18 \times 10^5$ &\cellgray $1\,830$ &\cellgray 9.02 &\cellgray $3\,993$ &\cellgray 29.57\\
+    		                    & & ATLAS & $3.75 \times 10^8$ & $2\,451$ & 6.81 & $10.25 \times 10^5$ & $11\,505$ & 16.83 & $13\,957$ & 23.65 \\
+    		\multirow{-6}{*}{1} & \multirow{-2}{*}{$2^{14}$} &\cellgray malicious Shamir &\cellgray $7.51 \times 10^8$ &\cellgray $8\,012$ &\cellgray 82.19 &\cellgray $4.75 \times 10^5$ &\cellgray $6\,576$ &\cellgray 36.08 &\cellgray $14\,588$ &\cellgray 118.28\\  
+    		\midrule
+    		                    & & ATLAS & $3.56 \times 10^7$ & 225 & 0.65 & $18.18 \times 10^4$ & $1\,971$ & $1\,595$ & $2\,197$ & 2.24 \\
+    		                    & \multirow{-2}{*}{$2^{10}$} &\cellgray malicious Shamir &\cellgray $7.02 \times 10^7$ &\cellgray 817 &\cellgray 7.78 &\cellgray $8.74 \times 10^4$ &\cellgray $1\,147$ &\cellgray 3.42 &\cellgray $1\,964$ &\cellgray 11.2 \\
+    		                    & & ATLAS & $1.42 \times 10^8$ & 938 & 2.57 & $7.24 \times 10^5$ & $8\,096$ & 6.35 & $9\,034$ & 8.92 \\
+    		                    & \multirow{-2}{*}{$2^{12}$} & \cellgray  malicious Shamir & \cellgray  $2.84 \times 10^8$ & \cellgray  $3\,140$ & \cellgray 31.02 & \cellgray $3.48 \times 10^5$ &\cellgray $4\,408$ &\cellgray 13.61 &\cellgray $7\,548$ &\cellgray 44.64 \\
+    		                    & & ATLAS & $5.67 \times 10^8$ & $3\,594$ & 10.28 & $2.89 \times 10^6$ & $31\,489$ &  25.42 & $35\,082$ & 35.70 \\
+    		\multirow{-6}{*}{2} & \multirow{-2}{*}{$2^{14}$} & \cellgray malicious Shamir & \cellgray  $ 11.32 \times 10^8$ & \cellgray  $12\,115$ & \cellgray  124.1 & \cellgray  $1.39 \times 10^6$ & \cellgray  $17\,034$ & \cellgray  54.47 & \cellgray  $29\,149$ & \cellgray  178.56 \\    		
+		\hline
+	\end{tabular}
+	}
+	\caption{Benchmarks of an \XMSS DKG using the MP-SPDZ framework, in a five-party setting. Only hash chains are considered (\textit{i.e.}, calculations that do not require MPC are not taken into account).\label{tab:mpspdz_dkg}}
+\end{table}
+\end{landscape}
+
+\subsection{Distributed key generation}
+\paragraph{Benchmark settings.}
+A DKG inconditionally requires to compute $2^w - 1$ hash chains over MPC, for each \WOTS secret key and every chunk value, therefore resulting in a way more intensive process compared to a signature generation.
+To provide concrete numbers, we run benchmarks for $w \in \{1,2\}$ along with the target-sum encoding.
+Due to long running time, we only considered a network latency of 10ms along with three different number of tree leafs: $2^{10}, 2^{12}$ and $2^{14}$.
+Although they do not reflect realistic deployment parameters due to their small values, it allows to conjecture on results for a larger number of \WOTS keys.
+Contrary to the signature generation benchmark where parallelization capabilities were fully exploited (\textit{i.e.}, a single communication round handles all chunks simultaneously), the DKG benchmark only partially leverages the processing of independent chunks.
+More precisely, it does not leverage parallelization capabilities at the \WOTS keys' level (\textit{i.e.}, a single communication round handles all chunks simultaneously, but for a single \WOTS key) leading to more communication rounds.
+This choice is justified by the fact that the MP-SPDZ framework was not able to unroll all loops due to programs' complexity (without mentioning that a fully parallelized implementation is not realistic in terms of bandwidth requirements).
+
+\paragraph{Results interpretation.}
+As reported in Table~\ref{tab:mpspdz_dkg}, the timings are still largely dominated by the network conditions, especially latency.
+Still, while bandwidth was not a major concern for signature generation, it becomes significant here as the amount of data exchanged between parties can exceed a hundred gigabytes.
+This gives an advantage to the ATLAS protocol which reduces the amount of precomputed data in the offline phase by half, lowering the amount of data transferred by an order of magnitude compared to malicious Shamir (although it doubles the number of online communication rounds while providing only passive security).
+While the distinction between the offline and online phases is less obvious in DKG compared to signature generation, it is still worth distinguishing between the two.
+Indeed, since DKG is run only once, it may be reasonable to assume that a trusted third party provides all parties with the preprocessed data so that they can directly proceed to the online phase.
+According to the practical results from our benchmark, having a tree composed of $2^{20}$ \WOTS keys would take $

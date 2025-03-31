@@ -61,7 +61,7 @@ Therefore, throughout the rest of this document, we focus on instantiations over
     		\bottomrule
 	\end{tabular}
 	}
-	\caption{\PoseidonTwoPi parameters for 31-bit prime fields. The reported results assume that cube evaluations have a multiplicative depth of 1 using the technique from~\cite{10.1145/2976749.2978332} which requires 2 precomputed triples (1 Beaver + 1 cube).\label{tab:poseidon2_inst31}}
+	\caption{\PoseidonTwoPi parameters for 31-bit prime fields. The reported results assume that cube evaluations take a single online communication round using the technique from~\cite{10.1145/2976749.2978332} which requires 2 precomputed triples (1 Beaver + 1 cube).\label{tab:poseidon2_inst31}}
 \end{table}
 
 \subsection{MPC protocols}
@@ -74,15 +74,18 @@ Restricting the model to an honest majority, however, enables substantial perfor
 Thus, it is crucial to determine whether a dishonest-majority setting is truly necessary to achieve optimal efficiency.
 Regarding distributed validators, it is important to note that they rely not only on a threshold signature scheme (TSS) but also on a consensus algorithm\footnote{\url{https://github.com/ethereum/distributed-validator-specs}}, which ensures that all parties agree on the same message to be  signed.
 It is well known that, in an asynchronous network, Byzantine fault tolerance (BFT) can only be achieved if $t < n/3$~\cite{10.1145/322186.322188}.
-Therefore, considering a two-thirds honest majority for the MPC computation of the signature aligns well with BFT assumptions.
-%However, if crash fault tolerance (CFT) is sufficient instead of BFT, the fault tolerance threshold may increase and considering an honest majority would allow the system to tolerate more faulty parties.
+While adopting a two-thirds honest majority for MPC-based signature computation aligns well with BFT assumptions, a higher fault tolerance threshold can be achieved if crash fault tolerance (CFT) suffices instead of BFT.
+In this case, an honest majority would enable the system to tolerate more faulty parties.
+Overall, while a two-thirds honest majority might be acceptable, an honest majority is desirable.
  
 \paragraph{Adversarial behaviour.}
 In the MPC litterature, corrupted parties are either considered malicious/active if they behave arbitrarily (\textit{i.e.}, they can deviate from the protocol) or semi-honest/passive if they follow the protocol but combine their respective information to learn more than they should be allowed to.
 To ensure general compatibility with BFT consensus protocols, we aim for malicious security.
-Still, protocols in the semi-honest model can be of interest for efficiency if crash fault tolerance (CFT) suffices.
+Still, protocols in the semi-honest model can be of interest for efficiency if CFT-only is acceptable.
 
 \paragraph{Security assumption.}
 The security of an MPC protocol can rely on different assumptions. It can be \textit{computational} secure, meaning that it depends on the hardness of specific mathematical problems (\textit{e.g.}, factoring large numbers), or it can be \textit{information-theoretic} secure, meaning that it achieves security based on principles of information theory without relying on computational hardness.
-Since our end goal is to compute a post-quantum signature scheme in an MPC fashion, we aim for information-theoretic secure MPC protocols as they are not threatened by quantum computers.
+While information-theoretic security is appealing to compute post-quantum over MPC, practical deployments rely on computational security for other components (\textit{e.g.}, PRNGs for efficient preprocessing or secure communication channels). 
+Since our end goal is to compute a post-quantum signature scheme in an MPC fashion, information-theoretic secure protocols are appealing as they are not threatened by quantum computers\footnote{Practical MPC deployments actually rely on computational security for other components (\textit{e.g.}, PRNGs for efficient preprocessing or secure communication channels).}. 
+
 %While the information-theoretic setting provides the highest security, it is not always possible to achieve and requires an honest majority.
