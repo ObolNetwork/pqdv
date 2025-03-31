@@ -1,0 +1,206 @@
+from math import ceil, log, gcd, floor, comb
+
+from Compiler.library import print_ln, start_timer, stop_timer
+
+import random
+
+class Poseidon2:
+    def __init__(self, p, t, Me, Mi, round_constants):
+        self.alpha = 3
+        self.t = t
+        self.Me = cint.Matrix(t, t)
+        self.Me.assign(Me)
+        self.Mi = cint.Array(t)
+        self.Mi.assign(Mi)
+        Re, Ri = Poseidon2.find_FD_round_numbers(p, t, self.alpha, 128, Poseidon2.get_sbox_cost, True)
+        self.Re = Re
+        self.Ri = Ri
+        self.round_constants = cint.Matrix(Re + Ri, t) 
+        self.round_constants.assign(round_constants)
+
+    @staticmethod
+    def get_alpha(p):
+        for alpha in range(3, p):
+            if gcd(alpha, p - 1) == 1:
+                break
+        return alpha
+
+    @staticmethod
+    def find_FD_round_numbers(p, t, alpha, M, cost_function, security_margin):
+        n = ceil(log(p, 2))
+        N = int(n * t)
+        sat_inequiv = Poseidon2.sat_inequiv_alpha
+        R_P = 0
+        R_F = 0
+        min_cost = float("inf")
+        max_cost_rf = 0
+        # Brute-force approach
+        for R_P_t in range(1, 500):
+            for R_F_t in range(4, 100):
+                if R_F_t % 2 == 0:
+                    if (sat_inequiv(p, t, R_F_t, R_P_t, alpha, M) == True):
+                        if security_margin == True:
+                            R_F_t += 2
+                            R_P_t = int(ceil(float(R_P_t) * 1.075))
+                        cost = cost_function(R_F_t, R_P_t, N, t)
+                        if (cost < min_cost) or ((cost == min_cost) and (R_F_t < max_cost_rf)):
+                            R_P = ceil(R_P_t)
+                            R_F = ceil(R_F_t)
+                            min_cost = cost
+                            max_cost_rf = R_F
+        return (int(R_F), int(R_P))
+
+    @staticmethod
+    def sat_inequiv_alpha(p, t, R_F, R_P, alpha, M):
+        N = int(log(p,2) * t)
+        if alpha > 0:
+            R_F_1 = 6 if M <= ((floor(log(p, 2) - ((alpha-1)/2.0))) * (t + 1)) else 10 # Statistical
+            R_F_2 = 1 + ceil(log(2, alpha) * min(M, log(p,2))) + ceil(log(t, alpha)) - R_P # Interpolation
+            R_F_3 = (log(2, alpha) * min(M, log(p, 2))) - R_P # Groebner 1
+            R_F_4 = t - 1 + log(2, alpha) * min(M / float(t + 1), log(p, 2) / float(2)) - R_P # Groebner 2
+            R_F_5 = (t - 2 + (M / float(2 * log(alpha, 2))) - R_P) / float(t - 1) # Groebner 3
+            R_F_max = max(ceil(R_F_1), ceil(R_F_2), ceil(R_F_3), ceil(R_F_4), ceil(R_F_5))
+            
+            # Addition due to https://eprint.iacr.org/2023/537.pdf
+            r_temp = floor(t / 3.0)
+            over = (R_F - 1) * t + R_P + r_temp + r_temp * (R_F / 2.0) + R_P + alpha
+            under = r_temp * (R_F / 2.0) + R_P + alpha
+            binom_log = log(comb(int(over), int(under)), 2)
+            #if binom_log == inf:
+            #    binom_log = M + 1
+            cost_gb4 = ceil(2 * binom_log) # Paper uses 2.3727, we are more conservative here
+            return ((R_F >= R_F_max) and (cost_gb4 >= M))
+        else:
+            print("Invalid value for alpha!")
+            exit(1)
+
+    @staticmethod
+    def get_sbox_cost(R_F, R_P, N, t):
+        return int(t * R_F + R_P)
+
+    def addrc_e(self, state, r):
+        for i in range(t):
+            state[i] = state[i] + self.round_constants[r][i]
+        return state
+
+    def addrc_i(self, state, r):
+        state[0] = state[0] + self.round_constants[r][0]
+        return state
+
+
+    def compute_cube(self, x):
+        r, rsq = sint.get_random_square()
+        r_cube = r * rsq
+        y = (x - r).reveal()
+        return 3 * y * rsq + 3 * y ** 2 * r + y ** 3 + r_cube
+
+    def pow_7(self, x):
+        x2 = x * x
+        x6 = self.compute_cube(x2)
+        return x * x6
+
+    def nonlinear_e(self, state):
+        for i in range(t):
+            state[i] = self.compute_cube(state[i])
+            #state[i] = self.pow_7(state[i])
+            #state[i] = state[i] ** self.alpha
+        return state
+
+    def nonlinear_i(self, state):
+        state[0] = self.compute_cube(state[0])
+        #state[0] = self.pow_7(state[0])
+        #state[0] = state[0] ** 2
+        return state
+
+    def linear_e(self, state):
+        out = sint.Array(t)
+        for i in range(t):
+            for j in range(t):
+                out[i] = out[i] + self.Me[i][j] * state[j]
+        return out
+
+    def linear_i(self, state):
+        sum_ = sum(s for s in state)
+        for i in range(t):
+            state[i] = sum_ + self.Mi[i] * state[i]
+        return state
+
+    def permutation(self, state):
+        state = self.linear_e(state)
+        for r in range(self.Re//2):
+            state = self.addrc_e(state, r)
+            state = self.nonlinear_e(state)
+            state = self.linear_e(state)
+        for r in range(self.Ri):
+            state = self.addrc_i(state, r + self.Re//2)
+            state = self.nonlinear_i(state)
+            state = self.linear_i(state)
+        for r in range(self.Re//2):
+            state = self.addrc_e(state, r + self.Re//2 + self.Ri)
+            state = self.nonlinear_e(state)
+            state = self.linear_e(state)
+        return state
+
+    def compress_hash(self, input):
+        assert len(input) <= t, ('Input does not fit into state')
+        output = self.permutation(input)
+        return output
+
+    def hash_chain(self, input, chainlen):
+        output = input
+        for i in range(chainlen):
+            output = self.compress_hash(output)
+        '''
+        @for_range_opt(chainlen)
+        def _(i):
+            output[:] = self.compress_hash(output[:])
+        '''
+        return output
+
+
+# default values
+p = 2**31 - 2**24 + 1
+t = 16
+
+chunks  = 42
+w       = 4
+
+args = len(program.args)
+if args > 2:
+    print_ln("args detected")
+    chunks = int(program.args[1])
+    w      = int(program.args[2])
+
+Me = [[10, 14, 2, 6, 5, 7, 1, 3, 5, 7, 1, 3, 5, 7, 1, 3],
+[8, 12, 2, 2, 4, 6, 1, 1, 4, 6, 1, 1, 4, 6, 1, 1],
+[2, 6, 10, 14, 1, 3, 5, 7, 1, 3, 5, 7, 1, 3, 5, 7],
+[2, 2, 8, 12, 1, 1, 4, 6, 1, 1, 4, 6, 1, 1, 4, 6],
+[5, 7, 1, 3, 10, 14, 2, 6, 5, 7, 1, 3, 5, 7, 1, 3],
+[4, 6, 1, 1, 8, 12, 2, 2, 4, 6, 1, 1, 4, 6, 1, 1],
+[1, 3, 5, 7, 2, 6, 10, 14, 1, 3, 5, 7, 1, 3, 5, 7],
+[1, 1, 4, 6, 2, 2, 8, 12, 1, 1, 4, 6, 1, 1, 4, 6],
+[5, 7, 1, 3, 5, 7, 1, 3, 10, 14, 2, 6, 5, 7, 1, 3],
+[4, 6, 1, 1, 4, 6, 1, 1, 8, 12, 2, 2, 4, 6, 1, 1],
+[1, 3, 5, 7, 1, 3, 5, 7, 2, 6, 10, 14, 1, 3, 5, 7],
+[1, 1, 4, 6, 1, 1, 4, 6, 2, 2, 8, 12, 1, 1, 4, 6],
+[5, 7, 1, 3, 5, 7, 1, 3, 5, 7, 1, 3, 10, 14, 2, 6],
+[4, 6, 1, 1, 4, 6, 1, 1, 4, 6, 1, 1, 8, 12, 2, 2],
+[1, 3, 5, 7, 1, 3, 5, 7, 1, 3, 5, 7, 2, 6, 10, 14],
+[1, 1, 4, 6, 1, 1, 4, 6, 1, 1, 4, 6, 2, 2, 8, 12]]
+
+Mi = [479859441, 1064293388, 236801731, 325174860, 162067567, 64109119, 278581903, 683867015, 996448497, 1960361558, 1782740945, 415413203, 1649591051, 130819423, 547348826, 1386569643]
+round_constants = [[2128964168, 288780357, 316938561, 2126233899, 426817493, 1714118888, 1045008582, 1738510837, 889721787, 8866516, 681576474, 419059826, 1596305521, 1583176088, 1584387047, 1529751136], [1863858111, 1072044075, 517831365, 1464274176, 1138001621, 428001039, 245709561, 1641420379, 1365482496, 770454828, 693167409, 757905735, 136670447, 436275702, 525466355, 1559174242], [1030087950, 869864998, 322787870, 267688717, 948964561, 740478015, 679816114, 113662466, 2066544572, 1744924186, 367094720, 1380455578, 1842483872, 416711434, 1342291586, 1692058446], [1493348999, 1113949088, 210900530, 1071655077, 610242121, 1136339326, 2020858841, 1019840479, 678147278, 1678413261, 1361743414, 61132629, 1209546658, 64412292, 1936878279, 1980661727], [1423960925, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [2101391318, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1915532054, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [275400051, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1168624859, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1141248885, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [356546469, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1165250474, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1320543726, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [932505663, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1204226364, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1452576828, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1774936729, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [926808140, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1184948056, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1186493834, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [843181003, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [185193011, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [452207447, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [510054082, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1139268644, 630873441, 669538875, 462500858, 876500520, 1214043330, 383937013, 375087302, 636912601, 307200505, 390279673, 1999916485, 1518476730, 1606686591, 1410677749, 1581191572], [1004269969, 143426723, 1747283099, 1016118214, 1749423722, 66331533, 1177761275, 1581069649, 1851371119, 852520128, 1499632627, 1820847538, 150757557, 884787840, 619710451, 1651711087], [505263814, 212076987, 1482432120, 1458130652, 382871348, 417404007, 2066495280, 1996518884, 902934924, 582892981, 1337064375, 1199354861, 2102596038, 1533193853, 1436311464, 2012303432], [839997195, 1225781098, 2011967775, 575084315, 1309329169, 786393545, 995788880, 1702925345, 1444525226, 908073383, 1811535085, 1531002367, 1635653662, 1585100155, 867006515, 879151050]]
+
+poseidon2 = Poseidon2(p, t, Me, Mi, round_constants)
+
+program.name = "poseidon2_dkg"
+print("Compiling: for p = " + str(p))
+
+secret_keys = sint.Array(t)
+start_timer(1)
+
+endchains = sint.Array(chunks*1024)
+@for_range_parallel(chunks, chunks*1024)
+def _(i):
+    endchains.assign(poseidon2.hash_chain(secret_keys, 2**w-1), i)
+stop_timer(1)
