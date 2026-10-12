@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="490" viewBox="0 0 1100 490" font-family="Helvetica, Arial, sans-serif">
+<!-- Durations for the PRAWNS path are illustrative (charon QBFT ~tens-hundreds of ms); MPC rows from tools/cost_model.py -->
+<rect x="0" y="0" width="1100" height="490" fill="#ffffff"/>
+<text x="16.0" y="26.0" font-size="15" fill="#0b0b0b" text-anchor="start" font-weight="bold">One lean slot: where a threshold signature has to fit</text>
+<text x="16.0" y="44.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">PRAWNS keeps all hashing off the slot's critical path; signing inside MPC cannot meet the 1.6 s aggregation point.</text>
+<line x1="300.0" y1="58.0" x2="300.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="300.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">0s</text>
+<line x1="377.0" y1="58.0" x2="377.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="377.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">0.4s</text>
+<line x1="454.0" y1="58.0" x2="454.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="454.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">0.8s</text>
+<line x1="531.0" y1="58.0" x2="531.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="531.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">1.2s</text>
+<line x1="608.0" y1="58.0" x2="608.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="608.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">1.6s</text>
+<line x1="685.0" y1="58.0" x2="685.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="685.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">2s</text>
+<line x1="762.0" y1="58.0" x2="762.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="762.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">2.4s</text>
+<line x1="839.0" y1="58.0" x2="839.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="839.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">2.8s</text>
+<line x1="916.0" y1="58.0" x2="916.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="916.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">3.2s</text>
+<line x1="993.0" y1="58.0" x2="993.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="993.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">3.6s</text>
+<line x1="1070.0" y1="58.0" x2="1070.0" y2="402.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="1070.0" y="418.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">4s</text>
+<line x1="454.0" y1="54.0" x2="454.0" y2="406.0" stroke="#52514e" stroke-width="1.5" stroke-dasharray="5,4"/>
+<text x="458.0" y="52.0" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">attest</text>
+<line x1="608.0" y1="54.0" x2="608.0" y2="406.0" stroke="#52514e" stroke-width="1.5" stroke-dasharray="5,4"/>
+<text x="612.0" y="52.0" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">aggregators</text>
+<text x="16.0" y="81.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">LEAN CONSENSUS SLOT (5 × 800 ms)</text>
+<text x="16.0" y="107.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">protocol schedule</text>
+<rect x="301.0" y="94.0" width="152.0" height="18.0" rx="3" fill="#4a3aa7" fill-opacity="1.0"/>
+<text x="377.0" y="107.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">propose</text>
+<rect x="455.0" y="94.0" width="152.0" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>
+<text x="531.0" y="107.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">attest</text>
+<rect x="609.0" y="94.0" width="152.0" height="18.0" rx="3" fill="#1baf7a" fill-opacity="1.0"/>
+<text x="685.0" y="107.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">aggregate</text>
+<rect x="763.0" y="94.0" width="152.0" height="18.0" rx="3" fill="#eda100" fill-opacity="1.0"/>
+<text x="839.0" y="107.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">confirm</text>
+<rect x="917.0" y="94.0" width="152.0" height="18.0" rx="3" fill="#e87ba4" fill-opacity="1.0"/>
+<text x="993.0" y="107.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">ingest</text>
+<text x="16.0" y="133.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">DV ATTESTATION WITH PRAWNS</text>
+<text x="16.0" y="159.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">agree on the message (QBFT)</text>
+<rect x="455.0" y="146.0" width="36.5" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
+<text x="473.2" y="159.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">QBFT</text>
+<text x="16.0" y="185.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">agree encoding randomness (rho)</text>
+<rect x="493.5" y="172.0" width="17.2" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
+<text x="515.8" y="185.2" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">rho</text>
+<text x="16.0" y="211.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">each node: PRF shares (no hashing)</text>
+<rect x="512.8" y="198.0" width="0.9" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
+<text x="16.0" y="237.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">send shares to combiner (1 RTT)</text>
+<rect x="515.6" y="224.0" width="14.4" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
+<text x="16.0" y="263.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">combine, look up cpk, grind, publish</text>
+<rect x="532.0" y="250.0" width="17.2" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
+<text x="554.2" y="263.2" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">sign</text>
+<text x="16.0" y="289.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">background: never-sign-twice record</text>
+<rect x="301.0" y="276.0" width="768.0" height="18.0" rx="3" fill="#2a78d6" fill-opacity="0.35"/>
+<text x="685.0" y="289.2" font-size="10" fill="#0b0b0b" text-anchor="middle" font-weight="normal">persisted before shares leave the node</text>
+<text x="16.0" y="315.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">IF WE HAD TO SIGN INSIDE MPC</text>
+<text x="16.0" y="341.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Poseidon chains in MPC (196–392 rounds)</text>
+<rect x="493.5" y="328.0" width="575.5" height="18.0" rx="3" fill="#e34948" fill-opacity="0.85"/>
+<text x="781.2" y="341.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">→ 4–39 s: misses the slot</text>
+<text x="16.0" y="367.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">BLAKE2s chains in MPC (3.6k–17.6k rounds)</text>
+<rect x="493.5" y="354.0" width="575.5" height="18.0" rx="3" fill="#e34948" fill-opacity="0.85"/>
+<text x="781.2" y="367.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">→ 73 s – 29 min</text>
+<text x="16.0" y="393.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">rho grinding in MPC (BLAKE2s, 2^15 tries)</text>
+<rect x="493.5" y="380.0" width="575.5" height="18.0" rx="3" fill="#e34948" fill-opacity="0.85"/>
+<text x="781.2" y="393.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">→ ≥10 s and ~150 Mbps per validator</text>
+<rect x="300.0" y="432.0" width="14.0" height="10.0" rx="2" fill="#eb6834" fill-opacity="1.0"/>
+<text x="319.0" y="441.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">critical path</text>
+<rect x="406.6" y="432.0" width="14.0" height="10.0" rx="2" fill="#2a78d6" fill-opacity="1.0"/>
+<text x="425.6" y="441.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">background</text>
+<rect x="494.6" y="432.0" width="14.0" height="10.0" rx="2" fill="#e34948" fill-opacity="1.0"/>
+<text x="513.6" y="441.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">does not fit</text>
+</svg>
