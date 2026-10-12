@@ -1,26 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="568" viewBox="0 0 1100 568" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="594" viewBox="0 0 1100 594" font-family="Helvetica, Arial, sans-serif">
 <!-- Illustrative sequencing, not a commitment. -->
-<rect x="0" y="0" width="1100" height="568" fill="#ffffff"/>
+<rect x="0" y="0" width="1100" height="594" fill="#ffffff"/>
 <text x="16.0" y="26.0" font-size="15" fill="#0b0b0b" text-anchor="start" font-weight="bold">The journey to a dealer-free threshold leanSig (illustrative, months from now)</text>
 <text x="16.0" y="44.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">Orange = critical path. Grey = Ethereum timelines we do not control. Durations are rough engineering guesses.</text>
-<line x1="300.0" y1="58.0" x2="300.0" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="300.0" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">0 mo</text>
-<line x1="396.2" y1="58.0" x2="396.2" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="396.2" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">3 mo</text>
-<line x1="492.5" y1="58.0" x2="492.5" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="492.5" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">6 mo</text>
-<line x1="588.8" y1="58.0" x2="588.8" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="588.8" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">9 mo</text>
-<line x1="685.0" y1="58.0" x2="685.0" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="685.0" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">12 mo</text>
-<line x1="781.2" y1="58.0" x2="781.2" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="781.2" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">15 mo</text>
-<line x1="877.5" y1="58.0" x2="877.5" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="877.5" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">18 mo</text>
-<line x1="973.8" y1="58.0" x2="973.8" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="973.8" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">21 mo</text>
-<line x1="1070.0" y1="58.0" x2="1070.0" y2="480.0" stroke="#ecebe8" stroke-width="1"/>
-<text x="1070.0" y="496.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">24 mo</text>
+<line x1="300.0" y1="58.0" x2="300.0" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="300.0" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">0 mo</text>
+<line x1="396.2" y1="58.0" x2="396.2" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="396.2" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">3 mo</text>
+<line x1="492.5" y1="58.0" x2="492.5" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="492.5" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">6 mo</text>
+<line x1="588.8" y1="58.0" x2="588.8" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="588.8" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">9 mo</text>
+<line x1="685.0" y1="58.0" x2="685.0" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="685.0" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">12 mo</text>
+<line x1="781.2" y1="58.0" x2="781.2" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="781.2" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">15 mo</text>
+<line x1="877.5" y1="58.0" x2="877.5" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="877.5" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">18 mo</text>
+<line x1="973.8" y1="58.0" x2="973.8" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="973.8" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">21 mo</text>
+<line x1="1070.0" y1="58.0" x2="1070.0" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="1070.0" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">24 mo</text>
 <text x="16.0" y="81.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">ETHEREUM (external, dates unknown)</text>
 <text x="16.0" y="107.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">leanSig params + hash choice settle</text>
 <rect x="301.0" y="94.0" width="286.8" height="18.0" rx="3" fill="#b9b8b2" fill-opacity="1.0"/>
@@ -55,14 +55,17 @@
 <text x="16.0" y="419.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">operator change without re-keying</text>
 <rect x="493.5" y="406.0" width="383.0" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>
 <text x="685.0" y="419.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">F_lat or new idea</text>
-<text x="16.0" y="445.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">SHIP</text>
-<text x="16.0" y="471.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">audit + production hardening</text>
-<rect x="846.4" y="458.0" width="190.5" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
-<text x="941.7" y="471.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">gated on the above</text>
-<rect x="300.0" y="510.0" width="14.0" height="10.0" rx="2" fill="#eb6834" fill-opacity="1.0"/>
-<text x="319.0" y="519.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">critical path</text>
-<rect x="406.6" y="510.0" width="14.0" height="10.0" rx="2" fill="#2a78d6" fill-opacity="1.0"/>
-<text x="425.6" y="519.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">off the critical path</text>
-<rect x="562.8" y="510.0" width="14.0" height="10.0" rx="2" fill="#b9b8b2" fill-opacity="1.0"/>
-<text x="581.8" y="519.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">external dependency</text>
+<text x="16.0" y="445.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">formal proofs in Lean (threshold XMSS)</text>
+<rect x="429.3" y="432.0" width="383.0" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>
+<text x="620.8" y="445.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">extend EF formal/xmss</text>
+<text x="16.0" y="471.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">SHIP</text>
+<text x="16.0" y="497.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">audit + production hardening</text>
+<rect x="846.4" y="484.0" width="190.5" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
+<text x="941.7" y="497.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">gated on the above</text>
+<rect x="300.0" y="536.0" width="14.0" height="10.0" rx="2" fill="#eb6834" fill-opacity="1.0"/>
+<text x="319.0" y="545.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">critical path</text>
+<rect x="406.6" y="536.0" width="14.0" height="10.0" rx="2" fill="#2a78d6" fill-opacity="1.0"/>
+<text x="425.6" y="545.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">off the critical path</text>
+<rect x="562.8" y="536.0" width="14.0" height="10.0" rx="2" fill="#b9b8b2" fill-opacity="1.0"/>
+<text x="581.8" y="545.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">external dependency</text>
 </svg>
