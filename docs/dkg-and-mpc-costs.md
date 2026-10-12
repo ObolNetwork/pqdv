@@ -44,7 +44,40 @@ multiplications × bytes per multiplication per node.
   over GF(2⁸) is needed (larger committees).
 - **Slots:** 4 s; 7,889,400 per year; 2 keys per validator.
 
-## 3. Results
+## 3. Results: BLAKE2s (the expected case)
+
+Ethereum's direction is a classic hash proven with fast batch provers (e.g. Flock), so key generation becomes a
+**Boolean** MPC over BLAKE2s (draft leanSig set B: 42 chains × 7 steps, 128-bit values).
+- **Inputs:** 20,160 ANDs per compression (ripple-carry adders; parallel-prefix adders cut depth at about 4× the
+  ANDs), and 1–3 bits per AND per node for 3–4-party replicated sharing (semi-honest to malicious).
+- **The black-box column** is plaintext hashing at about 5 M BLAKE2s compressions per second per core. That's what an
+  *insecure* DKG would cost (see [`prawns.md`](prawns.md) §5.1).
+
+### BLAKE2s key generation (draft set B): dealer-free MPC DKG vs a black-box (insecure) DKG
+
+| key covers | ANDs / validator | MPC traffic per node | MPC time @1 Gbps | @10 Gbps | black-box (insecure) compute on one 16-core box |
+|---|---|---|---|---|---|
+| 1 day (daily keys, Extremely Lean Chain; smaller tree) | 2.6e+11 | 32 GB–96 GB | 4 min–13 min | 26 s–77 s | 0 s |
+| ≈ 6 days (minimum key) | 1.6e+12 | 194 GB–583 GB | 26 min–78 min | 3 min–8 min | 1 s |
+| 12 months | 9.4e+13 | 11.7 TB–35.1 TB | 26.0 h–3.2 d | 2.6 h–7.8 h | 58 s |
+| 18 months | 1.4e+14 | 17.5 TB–52.6 TB | 39.0 h–4.9 d | 3.9 h–11.7 h | 87 s |
+| 5 years | 4.7e+14 | 58.5 TB–175.4 TB | 5.4 d–16.2 d | 13.0 h–39.0 h | 5 min |
+
+Amortised (background, continuous): 3.0–8.9 Mbps per node per validator. Rounds: 3,640–17,640 in total (≈ 3–15 min at 50 ms) — latency is irrelevant, bandwidth is the cost.
+
+### Persistent storage per validator (public combiner table; secret key shares are kilobytes)
+
+| strategy | BLAKE2s (set B) | Poseidon (set A) | validators per 2 TB node (set B, 12-month keys) |
+|---|---|---|---|
+| every node stores the whole year | 74 GB | 163 GB | 27 |
+| only f+1 combiner replicas (n=4,f=1 → ½ of nodes) | 37 GB | 81 GB | 54 |
+| only f+1 replicas (n=7,f=2 → 3/7 of nodes) | 32 GB | 70 GB | 63 |
+| untrusted object store + local prefetch of 2 × 2^16-slot windows (≈6 days) | 1.2 GB local (+74 GB remote, ≈$1.7/month at S3 list price) | 2.7 GB local | 1,622 |
+| regenerate each window by MPC instead of storing | ≈ 0 | ≈ 0 | doubles the MPC traffic |
+
+Daily keys: public table per validator per day ≈ 203 MB (BLAKE2s set B).
+
+## 4. Results: Poseidon (if Ethereum kept a zk-friendly hash)
 
 ### Per hash call inside MPC (one chain step)
 
@@ -82,7 +115,7 @@ Rounds for the whole DKG if fully parallel: 196–392 (7 chain steps x per-hash 
 BLAKE2s vs Poseidon, DKG bandwidth (same security setting): ×2.2–×9.5 with 3–4 party replicated Boolean MPC; ×18–×76 if ANDs need Shamir over GF(2^8) (larger n)
 BLAKE2s DKG rounds: 3,640–17,640 (≈ 3–15 min at 50 ms RTT)
 
-### Moving per-slot work into MPC (latency budget ≈ 0.8 s: attest at 0.8 s, aggregators at 1.6 s)
+### Moving per-slot work into MPC (both hashes) (latency budget ≈ 0.8 s: attest at 0.8 s, aggregators at 1.6 s)
 
 | candidate | rounds | wall-clock at 20–100 ms RTT | per-party wire per signature | verdict |
 |---|---|---|---|---|
@@ -95,8 +128,9 @@ BLAKE2s DKG rounds: 3,640–17,640 (≈ 3–15 min at 50 ms RTT)
 
 ### Combiner public table (cpk): 10.1 KiB per slot per key, 163 GB per validator-year (public, incompressible)
 
-## 4. Reading the numbers
+## 5. Reading the numbers
 
+- **BLAKE2s (expected).** Per validator and node, a 12-month key is 12–35 TB, 26 h – 3.2 days at 1 Gbps, about 3–9 Mbps amortised (§3). The Poseidon bullets below are for comparison.
 - **"Minutes, hours or untenable?"** It depends on the key range:
   - **the minimum key (2¹⁷ slots, about 6 days):** minutes;
   - **1-year key:** hours with a good protocol on fast links, days off the shelf;
@@ -116,14 +150,28 @@ BLAKE2s DKG rounds: 3,640–17,640 (≈ 3–15 min at 50 ms RTT)
   - regenerate it per 2¹⁶-slot window by MPC, which doubles the MPC work but bounds storage;
   - or let each node keep only the windows it might combine.
 
-## 5. Levers, biggest first
+## 6. What can be precomputed
+
+| Piece | Depends on the key? | When it can run |
+|---|---|---|
+| MPC correlated randomness (triples, or PRSS + DN07 double sharings) | no | any time, continuously, low priority. With pseudorandom secret sharing (one PRF key per subset of nodes, C(n,t) keys) double sharings cost no traffic, and DN07 degree reduction costs about 2.7–2.9 field elements per node per multiplication (Stoffel's measured formulas; see [`alternatives.md`](alternatives.md)) |
+| key generation proper | yes | in independent chunks (any slot range), resumable, throttled; next year's key during the last month or two of the current one |
+| the public table | yes (output of key generation) | written once; fetch per window or keep f+1 replicas |
+| encoding randomness ρ | per message | commit early, reveal on QBFT messages after the message is agreed |
+| signing | per slot | nothing heavy to precompute |
+
+Throttling arithmetic for a 12-month BLAKE2s key built over the final 30 days of the previous key: 12–35 TB per node
+→ **36–108 Mbps per validator** (half that over 60 days). Operators with many validators either have the bandwidth,
+consolidate, or stagger rotations across the year.
+
+## 7. Levers, biggest first
 
 1. **Protocol: key rotation or extension.** It doesn't reduce total work, but it spreads the DKG into rolling
    per-window runs (about 6.2 × 10⁹ multiplications per key per ~3 days). That bounds lock-in, allows operator changes
    at window boundaries, and removes the "pay for 5 years up front" problem.
 2. **Protocol: chain steps per slot.** Cost is linear in v·(2^w − 1), which is 322 for the devnet set and 294 for the
    draft set. Larger w shortens signatures but raises it exponentially.
-3. **Protocol: an MPC-friendly chain hash.** Poseidon-class costs 2–10× less bandwidth than BLAKE2s in MPC.
+3. **Protocol: the chain hash.** Poseidon-class is 2–10× cheaper in MPC than BLAKE2s at 3–4 parties. Ethereum is leaning towards BLAKE, so plan for BLAKE: keep the MPC committee at 3–4 nodes (replicated Boolean sharing), and avoid GF(2⁸) Shamir, which costs 8× more.
 4. **Protocol choice:**
    - **3–4-party replicated sharing:** about 4 B per mult, versus 31 B for off-the-shelf malicious Shamir;
    - **pseudorandom correlation generators:** could make preprocessing nearly free.
@@ -133,7 +181,7 @@ BLAKE2s DKG rounds: 3,640–17,640 (≈ 3–15 min at 50 ms RTT)
    validator-year, the same as single-signer key generation) plus share and table distribution. The cost is trust in
    the enclave and in erasure.
 
-## 6. Caveats
+## 8. Caveats
 
 - **Bytes per mult.** These come from MP-SPDZ (2025) and literature-level estimates for 3–4-party protocols. A custom
   implementation needs to measure its own.

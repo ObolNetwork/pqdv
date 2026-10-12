@@ -41,6 +41,10 @@ ASSUME_BITS_PER_AND = {"3-4 party replicated Boolean": (1, 3),  # semi-honest ..
                        "n>4 Shamir over GF(2^8)": (8, 24)}
 
 
+def fmt_b(b):
+    return f"{b / 1e9:.0f} GB" if b < 1e12 else f"{b / 1e12:.1f} TB"
+
+
 def fmt_t(s):
     if s < 120:
         return f"{s:.0f} s"
@@ -126,7 +130,66 @@ def storage():
           f"{KEYS_PER_VALIDATOR * cell * SLOTS_PER_YEAR / 1e9:.0f} GB per validator-year (public, incompressible)\n")
 
 
-if __name__ == "__main__":
+
+# ---- BLAKE2s world (draft leanSig set B: 42 chains x 7 steps, 128-bit digests) -------------------------------
+SET_B_STEPS = 42 * 7
+ASSUME_BLAKE2S_PER_CORE = 5e6        # plaintext BLAKE2s compressions per second per core (~200 ns), assumption
+ASSUME_BITS_PER_AND_3PC = (1, 3)     # 3-4 party replicated Boolean MPC, semi-honest .. malicious
+
+
+def blake_world():
+    print("## BLAKE2s world (draft set B): dealer-free MPC DKG vs a black-box (insecure) DKG\n")
+    print("| key covers | ANDs / validator | MPC traffic per node | MPC time @1 Gbps | @10 Gbps | "
+          "black-box (insecure) compute on one 16-core box |")
+    print("|---|---|---|---|---|---|")
+    for name, slots in (("1 day (daily keys, Extremely Lean Chain; smaller tree)", 21600), ("≈ 6 days (minimum key)", 2 ** 17), ("12 months", SLOTS_PER_YEAR),
+                        ("18 months", int(1.5 * SLOTS_PER_YEAR)), ("5 years", 5 * SLOTS_PER_YEAR)):
+        comps = KEYS_PER_VALIDATOR * slots * SET_B_STEPS
+        ands = comps * BLAKE_RIPPLE_AND
+        lo, hi = (ands * b / 8 for b in ASSUME_BITS_PER_AND_3PC)
+        bb = comps / (ASSUME_BLAKE2S_PER_CORE * 16)
+        print(f"| {name} | {ands:.1e} | {fmt_b(lo)}–{fmt_b(hi)} | {fmt_t(lo / 125e6)}–{fmt_t(hi / 125e6)} | "
+              f"{fmt_t(lo / 1.25e9)}–{fmt_t(hi / 1.25e9)} | {fmt_t(bb)} |")
+    per_year = KEYS_PER_VALIDATOR * SLOTS_PER_YEAR * SET_B_STEPS * BLAKE_RIPPLE_AND
+    lo, hi = (per_year * b / (365.25 * 86400) / 1e6 for b in ASSUME_BITS_PER_AND_3PC)
+    print(f"\nAmortised (background, continuous): {lo:.1f}–{hi:.1f} Mbps per node per validator. "
+          f"Rounds: {7 * BLAKE_PREFIX_DEPTH:,}–{7 * BLAKE_RIPPLE_DEPTH:,} in total (≈ {7 * BLAKE_PREFIX_DEPTH * .05 / 60:.0f}–"
+          f"{7 * BLAKE_RIPPLE_DEPTH * .05 / 60:.0f} min at 50 ms) — latency is irrelevant, bandwidth is the cost.\n")
+
+
+def storage_options():
+    cell_a = 46 * 7 * 8 * 4          # Poseidon set A: 8 x 31-bit elements per value
+    cell_b = 42 * 7 * 16             # BLAKE2s set B: 128-bit values
+    print("## Persistent storage per validator (public combiner table; secret key shares are kilobytes)\n")
+    print("| strategy | BLAKE2s (set B) | Poseidon (set A) | validators per 2 TB node (set B, 12-month keys) |")
+    print("|---|---|---|---|")
+    yr = KEYS_PER_VALIDATOR * SLOTS_PER_YEAR
+    full_b, full_a = yr * cell_b, yr * cell_a
+    rows = [("every node stores the whole year", full_b, full_a, 1.0),
+            ("only f+1 combiner replicas (n=4,f=1 → ½ of nodes)", full_b / 2, full_a / 2, 0.5),
+            ("only f+1 replicas (n=7,f=2 → 3/7 of nodes)", full_b * 3 / 7, full_a * 3 / 7, 3 / 7)]
+    for label, b, a, _ in rows:
+        print(f"| {label} | {b / 1e9:.0f} GB | {a / 1e9:.0f} GB | {2e12 / b:.0f} |")
+    win = 2 * 2 ** 16 * KEYS_PER_VALIDATOR
+    print(f"| untrusted object store + local prefetch of 2 × 2^16-slot windows (≈6 days) | {win * cell_b / 1e9:.1f} GB local "
+          f"(+{full_b / 1e9:.0f} GB remote, ≈${full_b / 1e9 * 0.023:.1f}/month at S3 list price) | {win * cell_a / 1e9:.1f} GB local | "
+          f"{2e12 / (win * cell_b):,.0f} |")
+    print("| regenerate each window by MPC instead of storing | ≈ 0 | ≈ 0 | doubles the MPC traffic |\n")
+
+
+def daily_storage():
+    cell_b = 42 * 7 * 16
+    day = KEYS_PER_VALIDATOR * 21600 * cell_b
+    print(f"Daily keys: public table per validator per day ≈ {day / 1e6:.0f} MB (BLAKE2s set B).\n")
+
+
+if __name__ == "__main__" and "--blake" in __import__("sys").argv:
+    blake_world()
+    storage_options()
+    daily_storage()
+
+
+if __name__ == "__main__" and "--blake" not in __import__("sys").argv:
     hash_table()
     dkg_table()
     dkg_table(42 * 7, "set B chain count (if it stayed Poseidon)")

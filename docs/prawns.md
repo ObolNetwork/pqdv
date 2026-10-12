@@ -144,6 +144,39 @@ later operator changes dealer-free.
   forges with probability about 2⁻⁸⁴ per trial in our recomputation of KK's dynamic program. That is a large
   concrete-security loss, and leanSig's grinding helps the attacker.
 
+### 5.1 Our numbers: honest-majority and Minimmit-style corruption, leanSig encoding [us]
+
+Kondi–Kumar's small-n table assumes all parties but one are corrupt, so the attack gets *easier* as n grows (> 2⁻¹⁶
+per try at 6 parties). Our model is Byzantine instead: a black-box DKG spreads chain-base queries across the nodes,
+so `f` colluders learn about `f/n` of each one-time key's chains. We computed exactly how likely a forgery is, for
+leanSig's target-sum encoding (46 chains, base 8, sum 200), with `tools/kk_leak.py`. With no leak the model gives
+2⁻¹²⁸, matching leanSig's design target.
+
+| corruption model | chains known (of 46) | average slot | best of 3,000 slots | extrapolated best of a year's slots | attack work incl. ~2¹⁰ grinding |
+|---|---|---|---|---|---|
+| BFT, f < n/3 (n = 4…10) | 12–14 | 2⁻⁴⁰…2⁻⁴⁵ | 2⁻³⁴…2⁻³⁸ | ~2⁻²²…2⁻²⁷ | **~2³²–2³⁷** |
+| Minimmit-style, f ≤ n/5 | 8–9 | 2⁻⁵³…2⁻⁵⁸ | 2⁻⁴⁷…2⁻⁵⁰ | ~2⁻³⁵…2⁻³⁹ | **~2⁴⁵–2⁴⁹** |
+
+(`tools/kk_multitarget.py` samples the per-slot spread. The year-level column extrapolates the sampled tail at about
+one bit per bit of target selection, so it's an estimate.)
+
+**What a forgery buys.**
+- **Slots not yet signed are safe.** Forging one needs about 18 known chains, beyond either corruption model, because
+  the unknown chains' public tops alone exceed the target sum.
+- **Signed slots are not.** After the DV signs a slot, the colluders can forge a *second* signature for it. That is
+  equivocation, i.e. slashing evidence that frames the validator. Slashing evidence doesn't need to be timely, so they
+  can grind offline and pick the weakest of millions of signed slots.
+- **Timing only blocks some uses.** Real-time forgeries (a competing vote or block within the slot) are out of reach.
+- **Other nodes' slashing protection is irrelevant.** The forgery is built offline by the attacker alone.
+
+Across a large operator's validators this becomes correlated slashing. So black-box DKGs are rejected at any n.
+
+**Related caveat (ρ).** If leanSig's encoding randomizer ρ were derived from public data, whoever picks the message
+(e.g. a Byzantine QBFT leader) could search for two messages with the same encoding. That is a birthday search over
+the roughly 2¹²⁸ valid encodings, so about 2⁶⁴ work by our estimate, and one honest signature would then cover both
+messages. ρ must be fixed jointly *after* the message is agreed, e.g. commit-reveal contributions carried on QBFT
+messages.
+
 ## 6. Open problems (authors' list, §6) and ours
 
 | Item | Owner | Matters for Obol because |

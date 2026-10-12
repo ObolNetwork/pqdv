@@ -24,14 +24,14 @@
 <text x="16.0" y="81.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">ETHEREUM (external, dates unknown)</text>
 <text x="16.0" y="107.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">leanSig params + hash choice settle</text>
 <rect x="301.0" y="94.0" width="286.8" height="18.0" rx="3" fill="#b9b8b2" fill-opacity="1.0"/>
-<text x="444.4" y="107.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">Poseidon vs BLAKE2s/SHA, v/w</text>
+<text x="444.4" y="107.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">drifting to BLAKE (Flock-proven)</text>
 <text x="16.0" y="133.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">lean consensus specs → PQ fork</text>
 <rect x="493.5" y="120.0" width="575.5" height="18.0" rx="3" fill="#b9b8b2" fill-opacity="0.6"/>
 <text x="781.2" y="133.2" font-size="10" fill="#0b0b0b" text-anchor="middle" font-weight="normal">specs 2027 per lean roadmap talks; fork date unknown</text>
 <text x="16.0" y="159.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">SPEC ASKS (critical)</text>
-<text x="16.0" y="185.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">joint rho, signing records, rotation</text>
+<text x="16.0" y="185.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">rotation 12–18 mo, joint rho, records</text>
 <rect x="301.0" y="172.0" width="190.5" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
-<text x="396.2" y="185.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">engage leanSig / leanSpec</text>
+<text x="496.5" y="185.2" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">engage EF / leanSig / leanSpec</text>
 <text x="16.0" y="211.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">XMSS-level PRAWNS proof for leanSig</text>
 <rect x="365.2" y="198.0" width="254.7" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
 <text x="492.5" y="211.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">authors sketch only today</text>
@@ -42,12 +42,12 @@
 <text x="16.0" y="289.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">public-table (cpk) storage + combiner</text>
 <rect x="429.3" y="276.0" width="158.4" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>
 <text x="508.5" y="289.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">storage, prefetch</text>
-<text x="16.0" y="315.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">parallel MPC DKG: 6-day key &lt; 1 h</text>
+<text x="16.0" y="315.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Boolean MPC keygen: 6-day key &lt; 1 h</text>
 <rect x="397.2" y="302.0" width="222.6" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
-<text x="508.5" y="315.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">custom 3–4 party, KoalaBear</text>
-<text x="16.0" y="341.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">MPC DKG at 1-year keys, restartable</text>
+<text x="508.5" y="315.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">BLAKE2s, 3–4 party, PRSS/DN07</text>
+<text x="16.0" y="341.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">12-month keys, chunked + resumable</text>
 <rect x="621.8" y="328.0" width="222.6" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
-<text x="733.1" y="341.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">TB-scale, checkpointing</text>
+<text x="733.1" y="341.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">TB-scale, background</text>
 <text x="16.0" y="367.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">RESEARCH (parallel)</text>
 <text x="16.0" y="393.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">robustness / identifiable abort</text>
 <rect x="429.3" y="380.0" width="318.8" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>

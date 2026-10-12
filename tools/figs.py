@@ -11,18 +11,18 @@ STAGES = ['Cluster\nformation', 'Key\ngeneration', 'Distribute\npublic table', '
           'Every slot\n(4 s)', 'Every ~3 days\n(2^16 slots)', 'Operator\nchange', 'Key lifetime\nends']
 ROWS = [  # label, first stage, last stage, colour, bar text
     ('Agree cluster config, threshold, operators', 0, 0, CRIT, 'minutes (as today)'),
-    ('Option A: trusted dealer (TEE) builds key', 1, 1, CRIT, 'CPU-hours/val-yr'),
-    ('Option B: MPC key generation (DKG)', 1, 1, RISK, 'hours–days, TBs'),
-    ('Ship public table (cpk) to combiners', 2, 2, CRIT, '≈163 GB/val-yr'),
+    ('Prototype only: dealer in a TEE', 1, 1, OFF, 'minutes; trust HW'),
+    ('MPC key generation (BLAKE2s)', 1, 1, RISK, '12–35 TB/val-yr'),
+    ('Store public table (f+1 or remote)', 2, 2, CRIT, '≤74 GB/val-yr'),
     ('Register 52-byte public key', 3, 3, CRIT, 'protocol queue'),
     ('Agree message (QBFT, as today)', 4, 4, CRIT, '≤ ~200 ms'),
     ('Agree encoding randomness (rho)', 4, 4, CRIT, '+1–2 rounds'),
     ('PRF shares → combine → publish', 4, 4, CRIT, '~1.5 KiB / node'),
     ('Never-sign-twice record per slot', 4, 7, OFF, 'like a slashing DB'),
-    ('Nothing (table precomputed)', 5, 5, OFF, '—  or MPC refresh'),
+    ('Prefetch next table window', 5, 5, OFF, '~0.6 GB'),
     ('F_hash: new key = new validator', 6, 6, RISK, 'full re-keygen'),
     ('F_lat: reshare, same public key', 6, 6, OFF, 'cheap; research'),
-    ('No rotation today: exit / re-key', 7, 7, RISK, 'protocol ask'),
+    ('Rotate to pre-built key (12–18 mo)', 7, 7, RISK, 'protocol ask'),
 ]
 
 
@@ -89,16 +89,16 @@ def roadmap(path):
     m = lambda x: x * 1000  # months -> gantt units
     lanes = [
         dict(label='ETHEREUM (external, dates unknown)', header=True),
-        dict(label='leanSig params + hash choice settle', bars=[(m(0), m(9), EXT, 'Poseidon vs BLAKE2s/SHA, v/w')]),
+        dict(label='leanSig params + hash choice settle', bars=[(m(0), m(9), EXT, 'drifting to BLAKE (Flock-proven)')]),
         dict(label='lean consensus specs → PQ fork', bars=[(m(6), m(24), EXT, 'specs 2027 per lean roadmap talks; fork date unknown', 0.6)]),
         dict(label='SPEC ASKS (critical)', header=True),
-        dict(label='joint rho, signing records, rotation', bars=[(m(0), m(6), CRIT, 'engage leanSig / leanSpec')]),
+        dict(label='rotation 12–18 mo, joint rho, records', bars=[(m(0), m(6), CRIT, 'engage EF / leanSig / leanSpec')]),
         dict(label='XMSS-level PRAWNS proof for leanSig', bars=[(m(2), m(10), CRIT, 'authors sketch only today')]),
         dict(label='BUILD', header=True),
         dict(label='dealer-based F_hash prototype in charon', bars=[(m(1), m(7), CRIT, 'lean devnet, real numbers')]),
         dict(label='public-table (cpk) storage + combiner', bars=[(m(4), m(9), OFF, 'storage, prefetch')]),
-        dict(label='parallel MPC DKG: 6-day key < 1 h', bars=[(m(3), m(10), CRIT, 'custom 3–4 party, KoalaBear')]),
-        dict(label='MPC DKG at 1-year keys, restartable', bars=[(m(10), m(17), CRIT, 'TB-scale, checkpointing')]),
+        dict(label='Boolean MPC keygen: 6-day key < 1 h', bars=[(m(3), m(10), CRIT, 'BLAKE2s, 3–4 party, PRSS/DN07')]),
+        dict(label='12-month keys, chunked + resumable', bars=[(m(10), m(17), CRIT, 'TB-scale, background')]),
         dict(label='RESEARCH (parallel)', header=True),
         dict(label='robustness / identifiable abort', bars=[(m(4), m(14), OFF, 'paper: none yet')]),
         dict(label='operator change without re-keying', bars=[(m(6), m(18), OFF, 'F_lat or new idea')]),
