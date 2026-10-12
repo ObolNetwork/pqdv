@@ -102,6 +102,7 @@ def roadmap(path):
         dict(label='RESEARCH (parallel)', header=True),
         dict(label='robustness / identifiable abort', bars=[(m(4), m(14), OFF, 'paper: none yet')]),
         dict(label='operator change without re-keying', bars=[(m(6), m(18), OFF, 'F_lat or new idea')]),
+        dict(label='formal proofs in Lean (threshold XMSS)', bars=[(m(4), m(16), OFF, 'extend EF formal/xmss')]),
         dict(label='SHIP', header=True),
         dict(label='audit + production hardening', bars=[(m(17), m(23), CRIT, 'gated on the above')]),
     ]

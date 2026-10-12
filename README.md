@@ -229,18 +229,21 @@ an audit.
 - **Backups are easy.** Secret shares are kilobytes, and the public table can be re-downloaded or rebuilt.
 
 **Beyond these, worth considering:**
-- **The migration burst.** When BLS validators move to PQ keys, every DV needs a key generation at roughly the same
-  time. Fleet-wide MPC capacity becomes the bottleneck, so stagger it, and plan for a quantum-emergency rush.
-- **The dual-stack period.** During the transition a DV may run BLS and leanSig duties side by side.
-- **The aggregator role.** Lean aggregators produce zk proofs (leanVM). That needs no secrets, so one node can do it,
-  but it needs proving hardware.
-- **Network-level privacy.** With daily keys, the cluster's daily MPC traffic pattern could link otherwise unlinkable
-  identities.
+- **Migration, not a dual stack.** A post-quantum chain will most likely launch separately, the way the beacon
+  chain did, with stake migrating across later. So no single runtime needs to handle BLS and leanSig duties. But
+  every DV migrating needs a key generation at about the same time, so stagger that fleet-wide MPC burst and plan for
+  a rushed, quantum-emergency migration.
 - **Ceremony UX.** A key generation that takes hours to days needs progress reporting, checkpointing and clear
   failure handling in tooling such as the launchpad and charon.
-- **Joint asks with other DVT teams.** SSV and Anchor will face the same Ethereum design decisions; aligned asks carry more weight.
-- **Formal verification.** The EF has machine-checked XMSS proofs in Lean; extending them to the threshold setting
-  would de-risk the XMSS-level proof gap.
+- **Formal verification.** The EF already has machine-checked proofs for XMSS in Lean (leanVM's `formal/xmss`,
+  `ethereum/cryptography-specs`). Extending them to threshold signing would close the gap PRAWNS leaves at the XMSS
+  level, where the paper only gives a sketch. Concretely:
+  1. formalise the context-aware threshold PRF (`F_hash` first, since it is a combinatorial construction with no
+     lattice assumptions);
+  2. prove the one-time threshold Winternitz theorem against leanSig's target-sum encoding with jointly agreed ρ;
+  3. compose it with the existing XMSS proof.
+
+  That would be a strong, reusable artefact for the whole ecosystem.
 
 ## 11. Verdict
 
