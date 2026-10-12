@@ -5,8 +5,7 @@ signatures that are aggregated with zero-knowledge proofs? This repo is Obol's w
 
 ## TL;DR
 
-- **Threshold signing is sorted.** [PRAWNS](https://eprint.iacr.org/2026/2142) (Boneh, Bünz, Justin D., Litchev,
-  Nazirkhanova, 2026):
+- **Threshold signing is sorted.** PRAWNS[^prawns] (Boneh, Bünz, Justin D., Litchev, Nazirkhanova, 2026):
   - every node signs alone, with no MPC and no hashing of secrets;
   - the output is a standard signature, so aggregation and verification are unchanged;
   - it fits in milliseconds inside a 4-second slot.
@@ -14,15 +13,16 @@ signatures that are aggregated with zero-knowledge proofs? This repo is Obol's w
   dealer means hashing secrets inside a multi-party computation (MPC).
   - For a 12-month key that is **12–35 TB of traffic per node** (1–3 days at 1 Gbps, hours at 10 Gbps).
   - Run in the background, that is about **3–9 Mbps per node per validator**.
-  - Storage is modest: under 100 GB per validator-year, down to about 1 GB if the public table lives remotely.
+  - Storage is modest: 11–25 GB per node per validator-year with Reed–Solomon across the cluster, down to about
+    1 GB if the public table lives remotely. If the table is lost, it can be rebuilt by MPC; losing it costs liveness,
+    never safety.
 - **It prefers a key rotation every 12–18 months.** One heavy key generation per year, overlapped with the live key,
   rather than paying for decades up front. That needs Ethereum to support cheap rotation or consolidation.
-- **A few Ethereum design choices make or break it.** Must-haves:
-  - encoding randomness the signers can fix after the message;
-  - key rotation without exit (yearly, or even daily as in *The Extremely Lean Chain*);
-  - keeping staking in groups as a design goal.
-
-  Higher maximum balances and an arithmetic-friendly hash help a lot ([§8](#8-ethereum-design-decisions-that-make-or-break-dvs)).
+- **A few Ethereum design choices matter.** Must-haves: encoding randomness the signers can fix after the message,
+  and keeping staking in groups as a design goal. Strongly preferred: key rotation without exit (yearly, or daily as
+  in *The Extremely Lean Chain*[^elc]) and higher maximum balances ([§8](#8-ethereum-design-decisions-that-make-or-break-dvs)).
+- **Verdict.** Signing is good to go. Minimising trust (no single point of failure) still needs work: a dealer-free
+  key generation for safety, and its liveness risks at runtime (periodic MPC, table availability).
 - **Maturity: research.** PRAWNS is a weeks-old preprint with no code. The rest of this page explains why the
   answer looks like this. The math lives in [`docs/`](docs/).
 
@@ -140,15 +140,26 @@ cost liveness, never safety.
 | Where the public table lives | Local storage per validator (12-month key, BLAKE2s) | Validators per 2 TB |
 |---|---|---|
 | every node keeps it all | 74 GB | ~27 |
-| only f+1 combiner replicas | 32–37 GB average | ~55–60 |
+| only f+1 combiner replicas | 30–37 GB average | ~55–65 |
+| Reed–Solomon across the cluster (any n−f shards rebuild; Merkle-committed shards) | 11–25 GB | ~80–190 |
 | untrusted object store, 6 days prefetched locally | ~1.2 GB (+74 GB remote, ≈ $2/month) | 1,000+ |
+
+**Losing the table costs liveness, not safety, and it can be rebuilt.**
+- **Effect:** without it the combiner can't produce signatures, so the validator stops signing for the affected
+  slots.
+- **Rebuild:** chain starts derive deterministically from the nodes' PRF key shares (kilobytes, easy to back up), so
+  any t nodes can rerun the MPC for just the lost range: about 100–300 GB per node, 13–40 minutes at 1 Gbps, per
+  ~3-day window. The values come out identical and are checkable against the commitment made at key generation.
+- **Mirrors:** the table is public, so anyone can host one.
+- **Not Ethereum blobs:** they're pruned after about 18 days and priced per byte, so they suit short-term
+  distribution at most.
 
 **What can be prepared ahead of time:**
 - **MPC preprocessing.** The random correlations the MPC consumes don't depend on the key. They can be generated
   continuously at low priority, nearly free in bandwidth with pseudorandom secret sharing.
 - **The key itself.** Slots are independent, so key generation splits into resumable chunks. It can be throttled,
   scheduled off-peak and restarted per chunk. Next year's key is built during the current key's last month or two.
-- **Encoding randomness.** It must be fixed *after* the message is agreed (§9). Its commit-reveal can ride on QBFT
+- **Encoding randomness.** It must be fixed *after* the message is agreed (§10). Its commit-reveal can ride on QBFT
   messages, adding no extra round.
 - **The first key.** It can be short (6 days, under an hour to generate) so a validator activates fast, then rotate
   to a 12-month key. That costs one extra rotation.
@@ -171,12 +182,12 @@ cost liveness, never safety.
 | Priority | Decision | Why |
 |---|---|---|
 | **Must** | encoding randomness ρ supplied by the signer after the message is agreed (not derived from the secret seed) | otherwise every signature needs a PRF inside MPC (≈ 2¹⁵ BLAKE2s calls), which misses the slot |
-| **Must** | key rotation without exit and re-deposit, every ≤ 12–18 months (the Extremely Lean Chain's "option 2") | caps key generation at a yearly background job; operator changes at rotation |
-| **Must** | staking in groups stays an explicit design goal | Vitalik, ethresear.ch 2026-07: "personally strongly in favor" |
-| Should | arithmetic-friendly hash | 2–10× cheaper MPC than BLAKE2s; enables FHE alternatives |
+| **Must** | staking in groups stays an explicit design goal | Vitalik, ethresear.ch 2026-07: "personally strongly in favor"[^elc] |
+| Should | key rotation without exit and re-deposit, every ≤ 12–18 months (the Extremely Lean Chain's "option 2") | caps key generation at a yearly background job; operator changes at rotation. Without it: pick a key range up front and exit at its end |
 | Should | index proposal keys by proposal duties assigned, not by slot | nearly halves key generation |
 | Should | higher maximum balance (2¹⁷–2²⁰ ETH, i.e. 131k–1.05M ETH) | another 64–512× fewer keys per ETH after 2048 |
 | Should | fewer chain steps per slot, v·(2^w − 1) | cost is linear in it |
+| Nice | arithmetic-friendly hash | 2–10× cheaper MPC than BLAKE2s and enables FHE alternatives, but Ethereum is moving to classic hashes for safety; we plan for BLAKE |
 | Nice | no ~27 h reward gap on rotation; spec-level signing records; explicit slashing rules | small costs and clarity |
 
 - **Equivocation rules don't help.** "Slashing requires both payloads to be valid" doesn't stop a forgery: the
@@ -191,8 +202,9 @@ Full analysis: [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisi
 ![Roadmap](docs/fig/roadmap.svg)
 
 1. **Ethereum asks** (ranked in §8).
+   - encoding randomness that a threshold signer can fix after the message (must);
+   - staking in groups kept as a design goal (must);
    - cheap key rotation or consolidation every 12–18 months, without the reward gap;
-   - encoding randomness that a threshold signer can fix after the message;
    - durable per-slot signing records;
    - awareness that each chain step per slot costs DV key generation linearly.
 2. **An XMSS / leanSig-level security proof.** The paper proves the one-time scheme; XMSS is a sketch.
@@ -214,16 +226,46 @@ an audit.
   abort and per-chunk restart. Twelve-month keys under an 18-month cap leave six months of slack.
 - **Lean consensus slashing rules aren't final.** The cost of the black-box attack above (framing) depends on them.
 - **Combiner availability.** Whoever combines needs the public table. Keep f+1 replicas, or the remote store.
-- **Backups are easy.** Secret shares are kilobytes, and the public table can be re-downloaded.
+- **Backups are easy.** Secret shares are kilobytes, and the public table can be re-downloaded or rebuilt.
+
+**Beyond these, worth considering:**
+- **The migration burst.** When BLS validators move to PQ keys, every DV needs a key generation at roughly the same
+  time. Fleet-wide MPC capacity becomes the bottleneck, so stagger it, and plan for a quantum-emergency rush.
+- **The dual-stack period.** During the transition a DV may run BLS and leanSig duties side by side.
+- **The aggregator role.** Lean aggregators produce zk proofs (leanVM). That needs no secrets, so one node can do it,
+  but it needs proving hardware.
+- **Network-level privacy.** With daily keys, the cluster's daily MPC traffic pattern could link otherwise unlinkable
+  identities.
+- **Ceremony UX.** A key generation that takes hours to days needs progress reporting, checkpointing and clear
+  failure handling in tooling such as the launchpad and charon.
+- **Joint asks with other DVT teams.** SSV and Anchor will face the same Ethereum design decisions; aligned asks carry more weight.
+- **Formal verification.** The EF has machine-checked XMSS proofs in Lean; extending them to the threshold setting
+  would de-risk the XMSS-level proof gap.
 
 ## 11. Verdict
 
-- **Signing: ready in principle.** Non-interactive, cheap, standard output, fits the slot.
-- **Key generation: viable as a background process with yearly rotation.** Untenable for multi-decade keys.
+- **Signing: good to go (in principle).** Non-interactive, cheap, standard output, fits the slot.
+- **Trust minimisation, meaning no single point of failure: needs work.**
+  - *Safety:* a dealer-free key generation (Boolean MPC over BLAKE2s), because a dealer or TEE is a single point of
+    compromise and black-box shortcuts are insecure[^kk].
+  - *Liveness at runtime:* the periodic MPC must complete before each rotation, and the public table must stay
+    available (Reed–Solomon or mirrors; rebuildable by MPC).
+- **Key generation cost: viable as a background process with yearly rotation.** Untenable for multi-decade keys.
   Black-box shortcuts are insecure. A TEE dealer is acceptable only as a prototype step. FHE only makes sense if
   Ethereum keeps an arithmetic-friendly hash ([`docs/alternatives.md`](docs/alternatives.md)).
 - **Readiness for Ethereum: research.** Preprint-stage cryptography, no implementation, and protocol choices still
   open at the EF (rotation, hash, randomness) that move the cost by large factors.
+
+## References
+
+[^prawns]: Boneh, Bünz, Justin D., Litchev, Nazirkhanova. *PRAWNS: Threshold Hash-Based Signatures from Threshold PRFs*. IACR ePrint 2026/2142. <https://eprint.iacr.org/2026/2142>; research preview <https://lclhost.org/blog/prawns/>
+[^kk]: Kondi, Kumar. *A Black-Box Impossibility Result for Threshold Signing Standard Hash-Based Signatures*. IACR ePrint 2026/2194. <https://eprint.iacr.org/2026/2194>
+[^elc]: Buterin. *The Extremely Lean Chain*. ethresear.ch, July 2026. <https://ethresear.ch/t/the-extremely-lean-chain/25369>
+
+Further reading: Bünz, Rothblum, Wang, *Flock: Fast Proving for Batch Boolean Computations*, ePrint 2026/1329
+<https://eprint.iacr.org/2026/1329> · leanSig <https://github.com/leanEthereum/leanSig> · leanSpec
+<https://github.com/leanEthereum/leanSpec> · leanVM <https://github.com/leanEthereum/leanVM> · Stoffel MPC
+<https://stoffelmpc.com> · HoneyBadgerMPC, ePrint 2019/883 <https://eprint.iacr.org/2019/883>
 
 ## Repo map
 

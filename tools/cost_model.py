@@ -170,6 +170,10 @@ def storage_options():
             ("only f+1 replicas (n=7,f=2 → 3/7 of nodes)", full_b * 3 / 7, full_a * 3 / 7, 3 / 7)]
     for label, b, a, _ in rows:
         print(f"| {label} | {b / 1e9:.0f} GB | {a / 1e9:.0f} GB | {2e12 / b:.0f} |")
+    for n, f in ((4, 1), (7, 2), (10, 3)):
+        k = n - f
+        print(f"| Reed–Solomon across the cluster (n={n}, f={f}: any {k} shards rebuild; Merkle-committed shards) | "
+              f"{full_b / k / 1e9:.0f} GB | {full_a / k / 1e9:.0f} GB | {2e12 / (full_b / k):.0f} |")
     win = 2 * 2 ** 16 * KEYS_PER_VALIDATOR
     print(f"| untrusted object store + local prefetch of 2 × 2^16-slot windows (≈6 days) | {win * cell_b / 1e9:.1f} GB local "
           f"(+{full_b / 1e9:.0f} GB remote, ≈${full_b / 1e9 * 0.023:.1f}/month at S3 list price) | {win * cell_a / 1e9:.1f} GB local | "
@@ -183,10 +187,19 @@ def daily_storage():
     print(f"Daily keys: public table per validator per day ≈ {day / 1e6:.0f} MB (BLAKE2s set B).\n")
 
 
+def table_recovery():
+    win_slots = 2 ** 16
+    ands = KEYS_PER_VALIDATOR * win_slots * SET_B_STEPS * BLAKE_RIPPLE_AND
+    lo, hi = (ands * b / 8 for b in ASSUME_BITS_PER_AND_3PC)
+    print(f"Re-deriving a lost 2^16-slot window (~3 days) of the public table by MPC: {fmt_b(lo)}–{fmt_b(hi)} per node, "
+          f"{fmt_t(lo / 125e6)}–{fmt_t(hi / 125e6)} at 1 Gbps (needs t nodes' PRF key shares).\n")
+
+
 if __name__ == "__main__" and "--blake" in __import__("sys").argv:
     blake_world()
     storage_options()
     daily_storage()
+    table_recovery()
 
 
 if __name__ == "__main__" and "--blake" not in __import__("sys").argv:

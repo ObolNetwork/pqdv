@@ -72,10 +72,23 @@ Amortised (background, continuous): 3.0–8.9 Mbps per node per validator. Round
 | every node stores the whole year | 74 GB | 163 GB | 27 |
 | only f+1 combiner replicas (n=4,f=1 → ½ of nodes) | 37 GB | 81 GB | 54 |
 | only f+1 replicas (n=7,f=2 → 3/7 of nodes) | 32 GB | 70 GB | 63 |
+| Reed–Solomon across the cluster (n=4, f=1: any 3 shards rebuild; Merkle-committed shards) | 25 GB | 54 GB | 81 |
+| Reed–Solomon across the cluster (n=7, f=2: any 5 shards rebuild; Merkle-committed shards) | 15 GB | 33 GB | 135 |
+| Reed–Solomon across the cluster (n=10, f=3: any 7 shards rebuild; Merkle-committed shards) | 11 GB | 23 GB | 189 |
 | untrusted object store + local prefetch of 2 × 2^16-slot windows (≈6 days) | 1.2 GB local (+74 GB remote, ≈$1.7/month at S3 list price) | 2.7 GB local | 1,622 |
 | regenerate each window by MPC instead of storing | ≈ 0 | ≈ 0 | doubles the MPC traffic |
 
 Daily keys: public table per validator per day ≈ 203 MB (BLAKE2s set B).
+
+Re-deriving a lost 2^16-slot window (~3 days) of the public table by MPC: 97 GB–291 GB per node, 13 min–39 min at 1 Gbps (needs t nodes' PRF key shares).
+
+**Storage notes.**
+- **Reed–Solomon:** shards are Merkle-committed (AVID-style) so a Byzantine node can't serve garbage undetected; the
+  combiner rebuilds each window ahead of time, keeping decoding off the slot's critical path.
+- **Ethereum blobs don't fit:** they are pruned after about 18 days and priced per byte (about 580k blobs per
+  validator-year).
+- **Losing the table costs liveness only.** It can be rebuilt by rerunning the MPC from any t nodes' PRF key
+  shares, and the result is checked against the commitment from key generation.
 
 ## 4. Results: Poseidon (if Ethereum kept a zk-friendly hash)
 
