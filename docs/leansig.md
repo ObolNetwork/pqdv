@@ -75,7 +75,7 @@ so a threshold scheme whose output is a normal leanSig signature needs no protoc
 
 A search across leanSig, leanSpec, leanVM, leanBench, pm, sig.golf and ots.golf found **no** mention of threshold
 signing, distributed validators, MPC or PRAWNS in the signature context. This is a gap worth raising with the
-leanSig / lean consensus teams: rotation, joint ρ and the hash choice all move the DV cost by large factors
+leanSig / lean consensus teams: two-layer keys, threshold-derived ρ and the hash choice all move the DV cost by large factors
 (see [`dkg-and-mpc-costs.md`](dkg-and-mpc-costs.md) §5).
 
 ## Maturity and timeline

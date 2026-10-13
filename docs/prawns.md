@@ -108,8 +108,8 @@ on the signing side.
   DKG protocol for hash-based signatures that is practical for modest values of n and t, say for a 20-out-of-30
   scheme." ([35] is *Dealing Haystack*, ePrint 2026/1804.)
 - **Hybrid idea (§3.4, p. 14), for XMSS-MT:** run an MPC to generate `cpk` per tree, "the MPC only needs to run once
-  every few hundred signatures". [us] leanSig is a *single* tree whose root fixes every chain top in the key's range
-  at generation, so this only helps with *storage* (regenerate `cpk` per window), not with the up-front cost.
+  every few hundred signatures". [us] Today's leanSig is a single tree, so this doesn't apply directly; with
+  [two-layer keys](two-layer-keys.md) it does, and it becomes our primary design: one MPC per ~3-day window.
 - **The paper gives no cost figures.** Ours are in [`dkg-and-mpc-costs.md`](dkg-and-mpc-costs.md).
 
 **What a dealer-free DKG computes [us].** Per slot per key, inside MPC: shared chain starts, the 7 chain steps on
@@ -192,4 +192,4 @@ threshold can predict ρ for a candidate message, so the offline search is impos
 | Robustness / identifiable abort | authors, us | a Byzantine node can stall combining |
 | Silent setup | authors | not needed for DVs |
 | XMSS-level proof with leanSig's target-sum encoding and ρ handling | us, leanSig team | correctness of the whole stack |
-| Key rotation or extension in lean consensus | Ethereum | turns one huge DKG into rolling small ones |
+| Two-layer validator keys (or rotation) in lean consensus | Ethereum | turns one huge DKG into a small one-off plus per-window jobs ([two-layer-keys.md](two-layer-keys.md)) |
