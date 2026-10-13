@@ -4,36 +4,95 @@ sys.path.insert(0, '.')
 from svgplot import Svg, gantt, SERIES, INK, INK2, MUTED, GRID
 
 CRIT, OFF, EXT, RISK = SERIES[1], SERIES[0], '#b9b8b2', SERIES[7]
+TOP, ACTIVE, NEXT, BUILD = SERIES[6], SERIES[0], SERIES[2], SERIES[3]
+
 
 # ---------------------------------------------------------------------------------------------------------
-# 1. Validator lifecycle: which activities run in which stage, on/off the critical path, and their bottleneck
-STAGES = ['Cluster\nformation', 'Key\ngeneration', 'Distribute\npublic table', 'Deposit &\nactivation',
-          'Every slot\n(4 s)', 'Every ~3 days\n(2^16 slots)', 'Operator\nchange', 'Key lifetime\nends']
+# 1. The two-layer key
+def keys(path):
+    w, h = 1100, 520
+    s = Svg(w, h)
+    s.text(16, 26, 'A two-layer validator key', size=15, fill=INK, weight='bold')
+    s.text(16, 44, 'The public key commits only to the top layer. Each ~3-day window gets a fresh bottom tree, '
+                   'certified once by one top-layer one-time key.', size=11, fill=MUTED)
+    s.rect(470, 62, 160, 30, INK, rx=4)
+    s.text(550, 82, 'validator public key', size=11, fill='#ffffff', anchor='middle', weight='bold')
+    s.add(f'<path d="M550,98 L300,210 L800,210 Z" fill="{TOP}" fill-opacity="0.15" stroke="{TOP}" stroke-width="2"/>')
+    s.text(550, 160, 'top layer: 65,536 one-time keys', size=11.5, fill=INK, anchor='middle', weight='bold')
+    s.text(550, 177, 'built once, jointly (MPC); one key per window', size=10.5, fill=INK2, anchor='middle')
+    leaves = [(360, 'window 1', ACTIVE, 'signing now'), (550, 'window 2', NEXT, 'ready'), (740, 'window 3', BUILD, 'being built')]
+    for x, name, col, state in leaves:
+        s.dot(x, 210, col, r=7)
+        s.line(x, 217, x, 300, stroke=col, width=2, dash=None if col != BUILD else '5,4')
+        s.text(x + 8, 262, 'certificate', size=9.5, fill=INK2)
+        s.text(x + 8, 274, '(posted once)', size=9.5, fill=MUTED)
+        dash = ' stroke-dasharray="6,4"' if col == BUILD else ''
+        s.add(f'<path d="M{x},300 L{x - 85},400 L{x + 85},400 Z" fill="{col}" fill-opacity="0.18" stroke="{col}" '
+              f'stroke-width="2"{dash}/>')
+        s.text(x, 372, name, size=11, fill=INK, anchor='middle', weight='bold')
+        s.text(x, 388, state, size=10, fill=INK2, anchor='middle')
+        s.text(x, 418, '65,536 one-time keys', size=10, fill=INK2, anchor='middle')
+        s.text(x, 432, '(one per slot, ~3 days)', size=10, fill=MUTED, anchor='middle')
+    s.text(840, 352, '… 65,536 windows', size=11, fill=MUTED)
+    s.text(840, 368, '= 2³² slots ≈ 544 years', size=11, fill=MUTED)
+    s.text(16, 470, 'Per-slot signature (~952 B): one one-time signature + a 16-level path to the current window\'s '
+                    'certified root.', size=11, fill=INK2)
+    s.text(16, 488, 'Once per window (~950 B): a top-layer one-time signature over the new window\'s root, registered '
+                    'on-chain or inside a periodic proof.', size=11, fill=INK2)
+    s.text(16, 506, 'Today\'s single tree instead fixes every slot\'s key up front: 1,208 B signatures and key '
+                    'generation for the whole activation range.', size=11, fill=MUTED)
+    s.save(path, 'Illustrative structure; sizes for draft leanSig parameters (BLAKE2s, 42 chains, 128-bit values).')
+
+
+# ---------------------------------------------------------------------------------------------------------
+# 2. Key generation pipeline: a steady background job
+def pipeline(path):
+    d = lambda x: x * 1000  # days -> gantt units
+    W = 3.03
+    lanes = [dict(label='SIGNING (per slot, PRAWNS)', header=True)]
+    for k in range(4):
+        lanes.append(dict(label=f'window {k + 1} active', bars=[(d(k * W), d((k + 1) * W), NEXT, f'window {k + 1}')]))
+    lanes.append(dict(label='KEY GENERATION (background MPC)', header=True))
+    lanes.append(dict(label='up front: top layer + window 1', bars=[(d(0), d(0.2), CRIT, '1.6–4.9 h')]))
+    for k in range(1, 4):
+        start = (k - 1) * W + 0.3
+        lanes.append(dict(label=f'build + certify window {k + 1}', bars=[(d(start), d(start + 0.13), OFF, '1–3 h')]))
+    gantt(path, 'Key generation runs in the background, one window ahead',
+          'Each ~3-day window\'s keys are built and certified while the previous window signs. '
+          'Bars to scale at 200 Mbps, per validator.',
+          lanes, xmax=d(12.2), xstep=d(1), lane_h=26, w=1100, tickfmt=lambda v: f'day {v / 1000:g}',
+          comment='tools/cost_model.py --primary',
+          legend=[(CRIT, 'one-off, before activation'), (OFF, 'background MPC job'), (NEXT, 'signing window')],
+          label_w=280)
+
+
+# ---------------------------------------------------------------------------------------------------------
+# 3. Validator lifecycle (two-layer keys)
+STAGES = ['Cluster\nformation', 'Key\ngeneration', 'Deposit &\nactivation', 'Every slot\n(4 s)',
+          'Every ~3 days\n(new window)', 'Operator\nchange', 'Exit']
 ROWS = [  # label, first stage, last stage, colour, bar text
     ('Agree cluster config, threshold, operators', 0, 0, CRIT, 'minutes (as today)'),
-    ('Prototype only: dealer in a TEE', 1, 1, OFF, 'minutes; trust HW'),
-    ('MPC key generation (BLAKE2s)', 1, 1, RISK, '12–35 TB/val-yr'),
-    ('Store public table (f+1 or remote)', 2, 2, CRIT, '≤74 GB/val-yr'),
-    ('Register 52-byte public key', 3, 3, CRIT, 'protocol queue'),
-    ('Agree message (QBFT, as today)', 4, 4, CRIT, '≤ ~200 ms'),
-    ('Encoding randomness (threshold PRF)', 4, 4, CRIT, 'on QBFT commits'),
-    ('PRF shares → combine → publish', 4, 4, CRIT, '~1.5 KiB / node'),
-    ('Never-sign-twice record per slot', 4, 7, OFF, 'like a slashing DB'),
-    ('Two-layer: build + certify next bottom tree', 5, 5, OFF, 'MPC, background'),
-    ('F_hash: new key = new validator', 6, 6, RISK, 'full re-keygen'),
-    ('F_lat: reshare, same public key', 6, 6, OFF, 'cheap; research'),
-    ('Single-layer fallback: rotate (12–18 mo)', 7, 7, RISK, 'protocol ask'),
+    ('MPC: top layer + first window', 1, 1, CRIT, '1.6–4.9 h @200M'),
+    ('Register the public key', 2, 2, CRIT, 'protocol queue'),
+    ('Agree message (QBFT, as today)', 3, 3, CRIT, '≤ ~200 ms'),
+    ('Randomness: threshold PRF on QBFT commits', 3, 3, CRIT, 'no extra round'),
+    ('PRF shares → combine → publish', 3, 3, CRIT, '~1.5 KiB / node'),
+    ('Never-sign-twice records (slots + windows)', 3, 6, OFF, 'like a slashing DB'),
+    ('MPC: build next window (background)', 4, 4, OFF, '1–3 h @200M'),
+    ('Certify next window (top-layer signature)', 4, 4, OFF, '~950 B, once'),
+    ('Reshare top layer; new set builds next window', 5, 5, OFF, 'same validator'),
+    ('Key material held per node', 1, 6, OFF, '≈ 1.5 GB per validator'),
 ]
 
 
 def lifecycle(path):
-    L, T, colw, rowh = 300, 96, 118, 30
+    L, T, colw, rowh = 320, 96, 124, 30
     w = L + colw * len(STAGES) + 20
     h = T + rowh * len(ROWS) + 70
     s = Svg(w, h)
-    s.text(16, 26, 'A distributed validator\'s life with threshold leanSig (PRAWNS)', size=15, fill=INK, weight='bold')
+    s.text(16, 26, "A distributed validator's life with two-layer keys", size=15, fill=INK, weight='bold')
     s.text(16, 44, 'Columns are lifecycle stages (not to scale). Orange = on the critical path to signing; '
-                   'blue = background; red = the hard / open parts.', size=11, fill=MUTED)
+                   'blue = background work.', size=11, fill=MUTED)
     for i, st in enumerate(STAGES):
         x = L + i * colw
         s.rect(x + 1, T - 40, colw - 2, 34, '#f3f2ef', rx=3)
@@ -46,17 +105,16 @@ def lifecycle(path):
         x0, x1 = L + a * colw + 3, L + (b + 1) * colw - 3
         s.rect(x0, y + 5, x1 - x0, rowh - 10, col, rx=3, opacity=0.9)
         s.text((x0 + x1) / 2, y + rowh * 0.66, txt, size=9.5, fill='#ffffff', anchor='middle')
-    ly = T + rowh * len(ROWS) + 30
-    lx = L
-    for col, lab in ((CRIT, 'on the critical path'), (OFF, 'background / off the critical path'), (RISK, 'hard, expensive or unsolved')):
+    ly, lx = T + rowh * len(ROWS) + 30, L
+    for col, lab in ((CRIT, 'on the critical path'), (OFF, 'background / off the critical path')):
         s.rect(lx, ly - 10, 14, 10, col, rx=2)
         s.text(lx + 19, ly - 1, lab, size=10.5, fill=INK2)
         lx += 40 + 6.4 * len(lab)
-    s.save(path, 'Sources: PRAWNS (ePrint 2026/2142), leanSpec/leanSig repos, tools/cost_model.py')
+    s.save(path, 'Sources: PRAWNS (ePrint 2026/2142), leanSpec/leanSig repos, tools/cost_model.py --primary')
 
 
 # ---------------------------------------------------------------------------------------------------------
-# 2. One 4-second lean slot: the signing path, and why signing inside MPC does not fit
+# 4. One 4-second lean slot
 def slot(path):
     P = [SERIES[6], SERIES[0], SERIES[2], SERIES[3], SERIES[4]]
     lanes = [
@@ -67,9 +125,9 @@ def slot(path):
         dict(label='DV ATTESTATION WITH PRAWNS', header=True),
         dict(label='agree on the message (QBFT)', bars=[(800, 1000, CRIT, 'QBFT')]),
         dict(label='rho = tPRF(msg) + i (shares on commits)', bars=[(1000, 1020, CRIT, 'grind')]),
-        dict(label='each node: PRF shares (no hashing)', bars=[(1100, 1115, CRIT, '')], marks=[]),
+        dict(label='each node: PRF shares (no hashing)', bars=[(1100, 1115, CRIT, '')]),
         dict(label='send shares to combiner (1 RTT)', bars=[(1115, 1200, CRIT, '')]),
-        dict(label='combine, look up cpk, grind, publish', bars=[(1200, 1300, CRIT, 'sign')]),
+        dict(label='combine, look up table, publish', bars=[(1200, 1300, CRIT, 'sign')]),
         dict(label='background: never-sign-twice record', bars=[(0, 4000, OFF, 'persisted before shares leave the node', 0.35)]),
         dict(label='IF WE HAD TO SIGN INSIDE MPC', header=True),
         dict(label='Poseidon chains in MPC (196–392 rounds)', bars=[(1000, 4000, RISK, '→ 4–39 s: misses the slot', 0.85)]),
@@ -84,36 +142,37 @@ def slot(path):
 
 
 # ---------------------------------------------------------------------------------------------------------
-# 3. R&D journey: what is on the critical path to a dealer-free threshold leanSig
+# 5. Roadmap
 def roadmap(path):
-    m = lambda x: x * 1000  # months -> gantt units
+    m = lambda x: x * 1000
     lanes = [
         dict(label='ETHEREUM (external, dates unknown)', header=True),
-        dict(label='leanSig params + hash choice settle', bars=[(m(0), m(9), EXT, 'drifting to BLAKE (Flock-proven)')]),
-        dict(label='lean consensus specs → PQ fork', bars=[(m(6), m(24), EXT, 'specs 2027 per lean roadmap talks; fork date unknown', 0.6)]),
+        dict(label='leanSig parameters + hash settle', bars=[(m(0), m(9), EXT, 'classic hash (BLAKE family)')]),
+        dict(label='lean consensus specs → PQ chain', bars=[(m(6), m(24), EXT, 'specs 2027 per lean roadmap talks; launch date unknown', 0.6)]),
         dict(label='SPEC ASKS (critical)', header=True),
-        dict(label='rotation 12–18 mo, joint rho, records', bars=[(m(0), m(6), CRIT, 'engage EF / leanSig / leanSpec')]),
-        dict(label='XMSS-level PRAWNS proof for leanSig', bars=[(m(2), m(10), CRIT, 'authors sketch only today')]),
+        dict(label='two-layer keys, certified roots', bars=[(m(0), m(8), CRIT, 'design with leanSig / leanSpec')]),
+        dict(label='bless threshold-derived randomness', bars=[(m(0), m(4), CRIT, 'tPRF(msg) + i')]),
+        dict(label='PROOFS', header=True),
+        dict(label='threshold two-layer XMSS proof', bars=[(m(2), m(10), CRIT, 'PRAWNS + certified roots')]),
+        dict(label='formal proofs in Lean', bars=[(m(4), m(16), OFF, 'extend existing XMSS proofs')]),
         dict(label='BUILD', header=True),
-        dict(label='dealer-based F_hash prototype in charon', bars=[(m(1), m(7), CRIT, 'lean devnet, real numbers')]),
-        dict(label='public-table (cpk) storage + combiner', bars=[(m(4), m(9), OFF, 'storage, prefetch')]),
-        dict(label='Boolean MPC keygen: 6-day key < 1 h', bars=[(m(3), m(10), CRIT, 'BLAKE2s, 3–4 party, PRSS/DN07')]),
-        dict(label='12-month keys, chunked + resumable', bars=[(m(10), m(17), CRIT, 'TB-scale, background')]),
-        dict(label='RESEARCH (parallel)', header=True),
-        dict(label='robustness / identifiable abort', bars=[(m(4), m(14), OFF, 'paper: none yet')]),
-        dict(label='operator change without re-keying', bars=[(m(6), m(18), OFF, 'F_lat or new idea')]),
-        dict(label='formal proofs in Lean (threshold XMSS)', bars=[(m(4), m(16), OFF, 'extend EF formal/xmss')]),
+        dict(label='dealer-based prototype in charon', bars=[(m(1), m(6), CRIT, 'lean devnet, real numbers')]),
+        dict(label='per-window Boolean MPC key generation', bars=[(m(3), m(12), CRIT, 'BLAKE2s, PRSS/DN07, resumable')]),
+        dict(label='top-layer shares + resharing', bars=[(m(6), m(13), OFF, 'operator changes')]),
+        dict(label='robustness / identifiable abort', bars=[(m(4), m(14), OFF, 'evict a faulty node')]),
         dict(label='SHIP', header=True),
-        dict(label='audit + production hardening', bars=[(m(17), m(23), CRIT, 'gated on the above')]),
+        dict(label='audit + production hardening', bars=[(m(13), m(20), CRIT, 'ready ahead of the PQ chain')]),
     ]
-    gantt(path, 'The journey to a dealer-free threshold leanSig (illustrative, months from now)',
-          'Orange = critical path. Grey = Ethereum timelines we do not control. Durations are rough engineering guesses.',
+    gantt(path, 'The road to post-quantum distributed validators (illustrative, months from now)',
+          'Orange = critical path. Grey = Ethereum timelines we do not control. Durations are engineering estimates.',
           lanes, xmax=m(24), xstep=m(3), lane_h=26, w=1100, tickfmt=lambda v: f'{v / 1000:g} mo',
           comment='Illustrative sequencing, not a commitment.',
           legend=[(CRIT, 'critical path'), (OFF, 'off the critical path'), (EXT, 'external dependency')], label_w=300)
 
 
 if __name__ == '__main__':
+    keys('../docs/fig/keys.svg')
+    pipeline('../docs/fig/pipeline.svg')
     lifecycle('../docs/fig/lifecycle.svg')
     slot('../docs/fig/slot.svg')
     roadmap('../docs/fig/roadmap.svg')

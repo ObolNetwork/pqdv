@@ -37,7 +37,7 @@ class Svg:
         self.add(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" fill="{fill}" stroke="{SURF}" stroke-width="2"/>')
 
     def save(self, path, comment=""):
-        c = f"<!-- {escape(comment)} -->\n" if comment else ""
+        c = f"<!-- {escape(comment).replace('--', '- -')} -->\n" if comment else ""
         open(path, "w").write(
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.w}" height="{self.h}" viewBox="0 0 {self.w} {self.h}" '
             f'font-family="{FONT}">\n{c}' + "\n".join(self.parts) + "\n</svg>\n")

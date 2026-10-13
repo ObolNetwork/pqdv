@@ -44,7 +44,30 @@ multiplications × bytes per multiplication per node.
   over GF(2⁸) is needed (larger committees).
 - **Slots:** 4 s; 7,889,400 per year; 2 keys per validator.
 
-## 3. Results: BLAKE2s (the expected case)
+## 3. Results: two-layer keys (the primary scenario)
+
+With [two-layer keys](two-layer-keys.md) and window certificates, a DV runs one MPC at setup (top layer + first
+window) and then one per ~3-day window, each built a window ahead. Per validator, per node, BLAKE2s, 3–4-party
+Boolean MPC at 1–3 bits per AND gate:
+
+
+| step | MPC traffic | at 200 Mbps | at 1 Gbps |
+|---|---|---|---|
+| Up front: top tree + first bottom trees (attestation + proposal) | 146 GB–437 GB | 97 min–4.9 h | 19 min–58 min |
+| Every ~3 days: next bottom trees (attestation + proposal) | 97 GB–291 GB | 65 min–3.2 h | 13 min–39 min |
+| Every ~3 days, proposal key indexed by duty (≈ one bottom tree) | 49 GB–146 GB | 32 min–97 min | 6 min–19 min |
+
+Average, spread across the window: 3.0–8.9 Mbps per validator per node (1.5–4.4 with duty-indexed proposal keys).
+Validators per node using half of a 200 Mbps link: 11–34 (22–67 with duty-indexed proposal keys).
+Validators per node using half of a 1 Gbps link: 56–169 (112–337 with duty-indexed proposal keys).
+
+Storage per validator per node: top-layer secret shares 0.31 GB (for life) + bottom-layer public tables for two windows, two keys 1.23 GB ≈ 1.5 GB.
+Per-slot signature 952 B (~128 compressions); once-per-window certificate ~950 B. Today: 1,208 B (~144).
+
+**Planning figure: 200 Mbps per node.** A commodity link handles the one-off in an afternoon and the per-window job
+in 1–3 hours. 1 Gbps makes both trivial.
+
+## 4. Results: single-layer keys (fallback), BLAKE2s
 
 Ethereum's direction is a classic hash proven with fast batch provers (e.g. Flock), so key generation becomes a
 **Boolean** MPC over BLAKE2s (draft leanSig set B: 42 chains × 7 steps, 128-bit values).
@@ -90,7 +113,7 @@ Re-deriving a lost 2^16-slot window (~3 days) of the public table by MPC: 97 GB�
 - **Losing the table costs liveness only.** It can be rebuilt by rerunning the MPC from any t nodes' PRF key
   shares, and the result is checked against the commitment from key generation.
 
-## 4. Results: Poseidon (if Ethereum kept a zk-friendly hash)
+## 5. Results: Poseidon (if Ethereum kept a zk-friendly hash)
 
 ### Per hash call inside MPC (one chain step)
 
@@ -141,9 +164,11 @@ BLAKE2s DKG rounds: 3,640–17,640 (≈ 3–15 min at 50 ms RTT)
 
 ### Combiner public table (cpk): 10.1 KiB per slot per key, 163 GB per validator-year (public, incompressible)
 
-## 5. Reading the numbers
+## 6. Reading the numbers
 
-- **BLAKE2s (expected).** Per validator and node, a 12-month key is 12–35 TB, 26 h – 3.2 days at 1 Gbps, about 3–9 Mbps amortised (§3). The Poseidon bullets below are for comparison.
+- **Two-layer keys (expected route).** One-off 1.6–4.9 h at 200 Mbps, then 1.1–3.2 h per ~3-day window, ~1.5 GB of
+  storage (§3). Everything below applies only if keys stay single-layer.
+- **Single-layer BLAKE2s.** Per validator and node, a 12-month key is 12–35 TB, 26 h – 3.2 days at 1 Gbps, about 3–9 Mbps amortised (§3). The Poseidon bullets below are for comparison.
 - **"Minutes, hours or untenable?"** It depends on the key range:
   - **the minimum key (2¹⁷ slots, about 6 days):** minutes;
   - **1-year key:** hours with a good protocol on fast links, days off the shelf;
@@ -163,23 +188,23 @@ BLAKE2s DKG rounds: 3,640–17,640 (≈ 3–15 min at 50 ms RTT)
   - regenerate it per 2¹⁶-slot window by MPC, which doubles the MPC work but bounds storage;
   - or let each node keep only the windows it might combine.
 
-## 6. What can be precomputed
+## 7. What can be precomputed
 
 | Piece | Depends on the key? | When it can run |
 |---|---|---|
 | MPC correlated randomness (triples, or PRSS + DN07 double sharings) | no | any time, continuously, low priority. With pseudorandom secret sharing (one PRF key per subset of nodes, C(n,t) keys) double sharings cost no traffic, and DN07 degree reduction costs about 2.7–2.9 field elements per node per multiplication (Stoffel's measured formulas; see [`alternatives.md`](alternatives.md)) |
-| key generation proper | yes | in independent chunks (any slot range), resumable, throttled; next year's key during the last month or two of the current one |
+| key generation proper | yes | two-layer: the next window during the current one (1–3 h at 200 Mbps); single-layer: in independent chunks, next year's key during the last month or two |
 | the public table | yes (output of key generation) | written once; fetch per window or keep f+1 replicas |
 | encoding randomness ρ | per message | commit early, reveal on QBFT messages after the message is agreed |
 | signing | per slot | nothing heavy to precompute |
 
-Throttling arithmetic for a 12-month BLAKE2s key built over the final 30 days of the previous key: 12–35 TB per node
+Single-layer only: throttling arithmetic for a 12-month BLAKE2s key built over the final 30 days of the previous key: 12–35 TB per node
 → **36–108 Mbps per validator** (half that over 60 days). Operators with many validators either have the bandwidth,
 consolidate, or stagger rotations across the year.
 
-## 7. Levers, biggest first
+## 8. Levers, biggest first
 
-1. **Protocol: key rotation or extension.** It doesn't reduce total work, but it spreads the DKG into rolling
+1. **Protocol: two-layer keys** ([two-layer-keys.md](two-layer-keys.md)), or failing that key rotation or extension. It doesn't reduce total work, but it spreads the DKG into rolling
    per-window runs (about 6.2 × 10⁹ multiplications per key per ~3 days). That bounds lock-in, allows operator changes
    at window boundaries, and removes the "pay for 5 years up front" problem.
 2. **Protocol: chain steps per slot.** Cost is linear in v·(2^w − 1), which is 322 for the devnet set and 294 for the
@@ -194,7 +219,7 @@ consolidate, or stagger rotations across the year.
    validator-year, the same as single-signer key generation) plus share and table distribution. The cost is trust in
    the enclave and in erasure.
 
-## 8. Caveats
+## 9. Caveats
 
 - **Bytes per mult.** These come from MP-SPDZ (2025) and literature-level estimates for 3–4-party protocols. A custom
   implementation needs to measure its own.

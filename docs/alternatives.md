@@ -20,7 +20,8 @@ duty or a failed key generation, never a key compromise or a forgeable validator
 - **Fastest path to a working prototype.** One machine generates the key, the shares and the public table, then
   erases. Compute is minutes per validator-year in plaintext.
 - **Not a production answer.** Safety would rest on enclave integrity, attestation and erasure.
-- **Rotation limits the damage.** The 12–18-month rotation bounds how long any prototype-era key lives.
+- **Windows limit the damage.** With two-layer keys, a prototype-era dealer only ever sees the windows it built; a
+  later move to MPC key generation takes over from the next window (and the top layer can be re-generated).
 
 ## 3. FHE: an untrusted evaluator instead of a dealer
 

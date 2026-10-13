@@ -212,6 +212,44 @@ def two_layer():
     print("- Signature (option A stateless): ~1,904 B, ~256 compressions; (option B certified roots): ~952 B, ~128 compressions; today 1,208 B, ~144\n")
 
 
+# ---- PRIMARY SCENARIO: two-layer keys with certified bottom roots ("option B") ------------------------------
+WINDOW_SLOTS = 2 ** 16                         # one bottom tree ≈ 3.03 days of 4 s slots
+CELL_B = 42 * 7 * 16                           # bytes of chain values per one-time key (set B, 128-bit)
+LINKS = {"200 Mbps": 25e6, "1 Gbps": 125e6}    # bytes/s per node
+
+
+def primary():
+    tree = WINDOW_SLOTS * SET_B_STEPS * BLAKE_RIPPLE_AND          # ANDs per tree (one key)
+    def traffic(trees):
+        return [trees * tree * b / 8 for b in ASSUME_BITS_PER_AND_3PC]
+    rows = [("Up front: top tree + first bottom trees (attestation + proposal)", 3),
+            ("Every ~3 days: next bottom trees (attestation + proposal)", 2),
+            ("Every ~3 days, proposal key indexed by duty (≈ one bottom tree)", 1)]
+    print("## Primary scenario: two-layer keys, certified bottom roots (BLAKE2s, per validator, per node)\n")
+    print("| step | MPC traffic | at 200 Mbps | at 1 Gbps |")
+    print("|---|---|---|---|")
+    for label, trees in rows:
+        lo, hi = traffic(trees)
+        print(f"| {label} | {fmt_b(lo)}–{fmt_b(hi)} | " +
+              " | ".join(f"{fmt_t(lo / bw)}–{fmt_t(hi / bw)}" for bw in LINKS.values()) + " |")
+    per_s = [t / (WINDOW_SLOTS * SLOT_S) for t in traffic(2)]
+    mbps = [x * 8 / 1e6 for x in per_s]
+    print(f"\nAverage, spread across the window: {mbps[0]:.1f}–{mbps[1]:.1f} Mbps per validator per node "
+          f"({mbps[0] / 2:.1f}–{mbps[1] / 2:.1f} with duty-indexed proposal keys).")
+    for name, bw in LINKS.items():
+        cap = bw * 8 / 1e6 / 2  # use at most half the link for key generation
+        print(f"Validators per node using half of a {name} link: {cap / mbps[1]:.0f}–{cap / mbps[0]:.0f} "
+              f"({2 * cap / mbps[1]:.0f}–{2 * cap / mbps[0]:.0f} with duty-indexed proposal keys).")
+    top_shares = WINDOW_SLOTS * CELL_B
+    bottom = 2 * 2 * WINDOW_SLOTS * CELL_B
+    print(f"\nStorage per validator per node: top-layer secret shares {top_shares / 1e9:.2f} GB (for life) + "
+          f"bottom-layer public tables for two windows, two keys {bottom / 1e9:.2f} GB ≈ {(top_shares + bottom) / 1e9:.1f} GB.")
+    print("Per-slot signature 952 B (~128 compressions); once-per-window certificate ~950 B. Today: 1,208 B (~144).\n")
+
+
+if __name__ == "__main__" and "--primary" in __import__("sys").argv:
+    primary()
+
 if __name__ == "__main__" and "--blake" in __import__("sys").argv:
     blake_world()
     storage_options()
@@ -220,7 +258,7 @@ if __name__ == "__main__" and "--blake" in __import__("sys").argv:
     two_layer()
 
 
-if __name__ == "__main__" and "--blake" not in __import__("sys").argv:
+if __name__ == "__main__" and not ({"--blake", "--primary"} & set(__import__("sys").argv)):
     hash_table()
     dkg_table()
     dkg_table(42 * 7, "set B chain count (if it stayed Poseidon)")
