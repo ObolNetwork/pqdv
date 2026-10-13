@@ -71,8 +71,13 @@ on the signing side.
   which is one-time per slot.
 - **leanSig encoding randomness [us].** leanSig grinds a randomizer ρ until the encoding hits the target sum, and
   derives ρ from the *secret seed*. Two different ρ for the same slot give two cuts, which breaks one-time security.
-  - **A threshold signer must agree ρ jointly:** commit-reveal, or derive it from consensus-agreed data. That adds
-    1–2 rounds. The paper discusses the same issue for eTCR encodings (Remark 4) and hypertree pruning (§3.4, p. 15).
+  - **Construction (suggested by EF researchers, Oct 2026):** ρ = H + i, where H = threshold-PRF(key, message),
+    computed with the same context-aware threshold PRF, and i is the smallest integer that makes the encoding valid.
+    Grinding is then public hashing; only H needs the secret.
+    - Nodes attach their H shares to QBFT commit messages, so it costs no extra round.
+    - It is unpredictable below threshold, deterministic per message, and has no last-revealer bias (unlike
+      commit-reveal).
+    - The paper discusses the same issue for eTCR encodings (Remark 4) and hypertree pruning (§3.4, p. 15).
   - **The context should bind (slot, message, ρ).**
   - **Needs sign-off:** the leanSig proofs assume a seed-derived ρ.
 
@@ -174,8 +179,8 @@ Across a large operator's validators this becomes correlated slashing. So black-
 **Related caveat (ρ).** If leanSig's encoding randomizer ρ were derived from public data, whoever picks the message
 (e.g. a Byzantine QBFT leader) could search for two messages with the same encoding. That is a birthday search over
 the roughly 2¹²⁸ valid encodings, so about 2⁶⁴ work by our estimate, and one honest signature would then cover both
-messages. ρ must be fixed jointly *after* the message is agreed, e.g. commit-reveal contributions carried on QBFT
-messages.
+messages. The threshold-PRF construction (§2: ρ = threshold-PRF(key, message) + i) closes this. Nobody below
+threshold can predict ρ for a candidate message, so the offline search is impossible.
 
 ## 6. Open problems (authors' list, §6) and ours
 

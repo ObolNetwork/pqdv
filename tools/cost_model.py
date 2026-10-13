@@ -195,11 +195,29 @@ def table_recovery():
           f"{fmt_t(lo / 125e6)}–{fmt_t(hi / 125e6)} at 1 Gbps (needs t nodes' PRF key shares).\n")
 
 
+def two_layer():
+    """Two-layer keys: top tree of 2^16 one-time keys certifying 2^16-slot bottom trees."""
+    per_tree = KEYS_PER_VALIDATOR * 2 ** 16 * SET_B_STEPS * BLAKE_RIPPLE_AND
+    up = 2 * per_tree  # top tree + first bottom tree
+    lo_u, hi_u = (up * b / 8 for b in ASSUME_BITS_PER_AND_3PC)
+    lo_w, hi_w = (per_tree * b / 8 for b in ASSUME_BITS_PER_AND_3PC)
+    print("## Two-layer keys (BLAKE2s set B, both keys)\n")
+    print(f"- Upfront (top tree + first bottom tree): {fmt_b(lo_u)}–{fmt_b(hi_u)} per node, "
+          f"{fmt_t(lo_u / 125e6)}–{fmt_t(hi_u / 125e6)} at 1 Gbps")
+    print(f"- Then one bottom tree per ~3 days: {fmt_b(lo_w)}–{fmt_b(hi_w)} per node, "
+          f"{fmt_t(lo_w / 125e6)}–{fmt_t(hi_w / 125e6)} at 1 Gbps; amortised rate unchanged")
+    cell_b = 42 * 7 * 16
+    print(f"- Public table held: top layer {KEYS_PER_VALIDATOR * 2 ** 16 * cell_b / 1e9:.1f} GB for life + "
+          f"two bottom windows {2 * KEYS_PER_VALIDATOR * 2 ** 16 * cell_b / 1e9:.1f} GB")
+    print("- Signature (option A stateless): ~1,904 B, ~256 compressions; (option B certified roots): ~952 B, ~128 compressions; today 1,208 B, ~144\n")
+
+
 if __name__ == "__main__" and "--blake" in __import__("sys").argv:
     blake_world()
     storage_options()
     daily_storage()
     table_recovery()
+    two_layer()
 
 
 if __name__ == "__main__" and "--blake" not in __import__("sys").argv:
