@@ -7,17 +7,93 @@ DVs don't work without it. Numbers come from [`dkg-and-mpc-costs.md`](dkg-and-mp
 
 | # | Priority | Decision | Why it matters for DVs | Current state (Oct 2026) |
 |---|---|---|---|---|
-| 1 | **Must** | **Encoding randomness ρ may be supplied by the signer after the message is fixed** (not required to be derived from the secret seed) | leanSig grinds ρ = PRF(secret seed, slot, msg, counter). A threshold signer has no seed: computing that PRF inside MPC on every signature is about 2¹⁵ BLAKE2s calls per signature (≈ 150 Mbps per validator, misses the slot). The verifier can't tell how ρ was made, so this is about the spec and its security proofs, not the wire format. ρ must still be unpredictable to whoever picks the message, or a Byzantine leader can search for two messages with one encoding (≈ 2⁶⁴ work) | leanSig derives ρ from the seed; proofs assume it |
-| 2 | **Must** | **Keep "stake in groups / MPC-friendly" as an explicit design goal** | Without it every choice below drifts against DVs by default. Vitalik on ethresear.ch (2026-07): "I'm personally strongly in favor of this continuing to be a goal." | stated support, no spec commitment |
-| 3 | Should | **Key rotation without exit and re-deposit**, every ≤ 12–18 months (or daily, see below) | Key generation cost scales with the slots a key covers. Rotation turns "pay for the whole lifetime up front" into a yearly background job (12–35 TB per node per validator), and lets operator changes happen at rotation instead of needing key-preserving resharing. Without it: pick a range at key generation (years = days of MPC per year covered) and exit at its end | no rotation in leanSpec; *The Extremely Lean Chain* (§ below) proposes rotation without a withdraw-and-deposit loop ("option 2") |
-| 4 | Should | **A standard signature format with no proof-only shortcuts** | PRAWNS's output is a normal signature. Anything that ties signatures to per-key secret state (e.g. ZK proofs whose witness includes the signing seed) would force MPC proving | fine today |
-| 5 | Should | **Index proposal keys by proposal duties assigned, not by slot** | Each validator has an attestation key *and* a proposal key covering every slot. Proposals are rare, so indexing the proposal key by the number of proposal duties assigned so far (deterministic from the proposer schedule, so a missed or orphaned block never reuses a leaf) shrinks it to a few thousand leaves and nearly **halves** key generation | both keys are slot-indexed |
-| 6 | Should | **Higher maximum effective balance** | Cost is per key, not per ETH. 32 → 2048 ETH is 64× fewer keys. Going to 2¹⁷–2²⁰ ETH (131,072 / 262,144 / 524,288 / 1,048,576 ETH, i.e. six figures to low seven) is another 64–512× | 2048 ETH (2¹¹) |
-| 7 | Should | **Chain steps per slot, v·(2^w − 1)** | Key generation cost is linear in it (294 for the draft set, 322 for devnets) | still being tuned (ots.golf) |
-| 8 | Nice | **Hash choice** | An arithmetic-friendly hash (Poseidon over KoalaBear) would make MPC 2–10× cheaper than BLAKE2s at 3–4 parties and enable FHE alternatives. But Ethereum is moving to classic hashes for safety and is unlikely to switch back, so we plan for BLAKE | drifting to BLAKE (provable with Flock) |
-| 9 | Nice | **Spec-level durable signing records** | Aligns client and DV slashing protection | leanSpec PR #1204 |
-| 10 | Nice | **No reward gap on rotation or consolidation** | Today: queue + about 27 h without rewards ≈ 0.3% of annual reward per rotation | — |
-| 11 | Nice | **Slashing semantics made explicit** | Sets the blast radius of mistakes. Note "equivocation requires both payloads to be valid" does **not** help us (below) | unspecified |
+| 1 | **Must** | **Keep "stake in groups / MPC-friendly" as an explicit design goal** | Without it every choice below drifts against DVs by default. Vitalik on ethresear.ch (2026-07): "I'm personally strongly in favor of this continuing to be a goal." | stated support, no spec commitment |
+| 2 | **Should (top ask)** | **Two-layer validator keys** (a long-lived top key certifies a fresh ~3-day bottom tree; ideally the certificate is registered once per window, "option B" below) | Key generation becomes a small upfront step (top tree + first bottom tree, the cost of today's minimum key) plus a steady background job per bottom tree. No lifetime to choose up front, no rotation needed, about 1.2 GB of public table per validator instead of 74 GB/year. Also shortens key generation for *every* validator, not just DVs | leanSig is one tree (its top/bottom split is a memory optimisation); leanSPHINCS (accounts) already uses a 3-layer hypertree in leanVM, with Lean proofs |
+| 3 | Should | **Bless threshold-derived encoding randomness**: ρ = H + i, where H = threshold-PRF(key, message) and i is the smallest integer that makes the encoding valid | Grinding then needs no secret, so it runs in the clear; H costs one non-interactive threshold evaluation, and its shares can ride on QBFT commit messages. Unpredictable to anyone below threshold, deterministic per message, and unbiasable (unlike commit-reveal). Verifiers can't tell the difference, so this works as a deviation today; the ask is to confirm it in the spec and proofs | suggested by EF researchers in discussion (Oct 2026) |
+| 4 | Should (fallback) | **Key rotation without exit and re-deposit**, every ≤ 12–18 months | Only needed if keys stay single-layer: caps key generation at a yearly background job and allows operator changes at rotation | no rotation in leanSpec; *The Extremely Lean Chain* proposes one ("option 2") |
+| 5 | Should | **A standard signature format with no proof-only shortcuts** | PRAWNS's output is a normal signature. Anything that ties signatures to per-key secret state (e.g. ZK proofs whose witness includes the signing seed) would force MPC proving | fine today |
+| 6 | Should | **Index proposal keys by proposal duties assigned, not by slot** | Each validator has an attestation key *and* a proposal key covering every slot. Proposals are rare, so indexing the proposal key by the number of proposal duties assigned so far (deterministic from the proposer schedule, so a missed or orphaned block never reuses a leaf) shrinks it to a few thousand leaves and nearly **halves** key generation | both keys are slot-indexed |
+| 7 | Should | **Higher maximum effective balance** | Cost is per key, not per ETH. 32 → 2048 ETH is 64× fewer keys. Going to 2¹⁷–2²⁰ ETH (131,072 / 262,144 / 524,288 / 1,048,576 ETH, i.e. six figures to low seven) is another 64–512× | 2048 ETH (2¹¹) |
+| 8 | Should | **Chain steps per slot, v·(2^w − 1)** | Key generation cost is linear in it (294 for the draft set, 322 for devnets) | still being tuned (ots.golf) |
+| 9 | Nice | **Hash choice** | An arithmetic-friendly hash (Poseidon over KoalaBear) would make MPC 2–10× cheaper than BLAKE2s at 3–4 parties and enable FHE alternatives. But Ethereum is moving to classic hashes for safety and is unlikely to switch back, so we plan for BLAKE | drifting to BLAKE (provable with Flock) |
+| 10 | Nice | **Spec-level durable signing records** | Aligns client and DV slashing protection | leanSpec PR #1204 |
+| 11 | Nice | **No reward gap on rotation or consolidation** | Today: queue + about 27 h without rewards ≈ 0.3% of annual reward per rotation | — |
+| 12 | Nice | **Slashing semantics made explicit** | Sets the blast radius of mistakes. Note "equivocation requires both payloads to be valid" does **not** help us (below) | unspecified |
+
+## Two-layer validator keys (the top ask)
+
+### In plain terms
+
+Today a leanSig key is like **a book of 4 billion single-use tickets**, one per slot. The public key is a fingerprint
+of the whole book, so to publish the fingerprint you must print every ticket up front, even though you only use one
+every 4 seconds. For a single validator that printing takes CPU-hours; for a DV it has to happen inside MPC, which is
+the expensive part.
+
+A two-layer key works like **a certificate chain** (as in TLS, a root CA certifying intermediates):
+- **Top layer.** You print only a small *master* book: 65,536 single-use stamps. The public key is the fingerprint of
+  the master book, so that's all you have to print up front.
+- **Bottom layer.** Every ~3 days you print a fresh *ticket* book of 65,536 tickets and spend one master stamp to
+  sign "this new ticket book is mine".
+- **Validity.** A ticket counts if it comes from a ticket book carrying a valid master stamp.
+
+You still get 65,536 books × 65,536 tickets = 2³² slots (≈ 544 years), but you only ever print one master book plus
+the current ticket book.
+
+### Two ways to run it
+
+| | size per signature | verification (compressions) | protocol change |
+|---|---|---|---|
+| Today: one tree, 32-level path | 1,208 B | ~144 | — |
+| **Option A, stateless:** every signature carries the bottom signature *and* the top stamp on its book | ~1,904 B (+58%) | ~256 (~1.8×) | signature scheme only |
+| **Option B, certified books:** the stamp is posted once per window and consensus records the current book's root; slot signatures reference it | ~952 B (−21%) | ~128 (−11%) | a once-per-window certificate plus a small "current root" record per validator |
+
+(Draft BLAKE2s parameters: 42 chains, 16-byte values. The top layer adds one one-time signature, 672 B, and one
+randomizer, 24 B. The path stays 32 levels in total under option A and drops to 16 under option B.)
+
+- **Option A** is a pure signature-scheme change, but it works against the lean team's stated goal of minimising
+  verification hashing for aggregation: every slot re-verifies the same top stamp.
+- **Option B** moves that cost from every slot to once per ~64k slots, at the price of consensus machinery. It
+  matches *The Extremely Lean Chain*'s per-period key registration (§ below). If the stamp is checked *inside* that
+  design's daily STARK, the link between windows also stays private.
+
+### Prior art in the lean repos
+
+- **leanSig already splits its tree** into a top tree over bottom-tree roots, but only to save memory: "During key
+  generation, we first generate all bottom trees and store their roots, then we generate the top tree just from their
+  roots" (`leanSig/src/signature/generalized_xmss.rs`). The change is to make the top tree's leaves one-time keys that
+  *sign* bottom roots later, instead of the roots themselves.
+- **leanVM already ships a hypertree.** leanSPHINCS, the account signature, is a 3-layer hypertree with a Rust
+  implementation, aggregation-guest verification code and Lean proofs (`leanVM/crates/sphincs`, `leanVM/formal/sphincs`).
+- **Key generation time was already a pain point.** Full-tree key generation is "~days (~64 GiB sk)", which is why
+  activation intervals exist (lean-week Cambridge, KeyGen & API talk).
+- **No explicit validator-level single- vs multi-layer discussion** turned up in the public notes we cloned.
+  The implicit reason is the design goal "minimize the signature verification or generation hashes so that the
+  prover … is easy" (pq-interop meeting 01), which option A works against and option B doesn't.
+- **Origin of this proposal:** suggested by EF researchers in discussion (October 2026), alongside the
+  threshold-derived ρ construction above.
+
+### What it means for DVs
+
+- **Upfront key generation:** the top tree plus the first bottom tree, roughly today's minimum-key cost: 0.2–0.6 TB
+  per node, 26–78 minutes at 1 Gbps per validator.
+- **Then one bottom tree per ~3 days, built ahead of time in the background:** ~100–300 GB per node, 13–40 minutes at
+  1 Gbps. The amortised rate is unchanged at about 3–9 Mbps per validator.
+- **Signing a new bottom root with the top key is ordinary PRAWNS signing**, once per window.
+- **Storage:** the top layer's public table (kept for life, ~0.3 GB per key) plus the current and next bottom windows
+  (~1.2 GB in total).
+- **Unchanged:** key generation still needs MPC (the leakage argument applies to every layer), and an operator change
+  still needs the top layer re-keyed (`F_hash`) or reshared (`F_lat`).
+
+### Why it helps every validator, not only DVs
+
+Every validator's key generation shrinks from "all slots in the activation interval" to "top tree plus one bottom
+tree". No one has to choose a lifetime up front or hold a multi-gigabyte secret key.
+
+### New safety rule it introduces
+
+Each top one-time key must certify **exactly one** bottom root; its index is the window number. Certifying two
+different roots for one window would let an attacker certify a bottom tree of their own, which is a full key
+compromise, worse than an ordinary double vote. Clients and DVs need slashing-style protection for top-layer signing.
 
 ## Higher maximum balance
 

@@ -16,11 +16,14 @@ signatures that are aggregated with zero-knowledge proofs? This repo is Obol's w
   - Storage is modest: 11–25 GB per node per validator-year with Reed–Solomon across the cluster, down to about
     1 GB if the public table lives remotely. If the table is lost, it can be rebuilt by MPC; losing it costs liveness,
     never safety.
-- **It prefers a key rotation every 12–18 months.** One heavy key generation per year, overlapped with the live key,
-  rather than paying for decades up front. That needs Ethereum to support cheap rotation or consolidation.
-- **A few Ethereum design choices matter.** Must-haves: encoding randomness the signers can fix after the message,
-  and keeping staking in groups as a design goal. Strongly preferred: key rotation without exit (yearly, or daily as
-  in *The Extremely Lean Chain*[^elc]) and higher maximum balances ([§8](#8-ethereum-design-decisions-that-make-or-break-dvs)).
+- **It prefers two-layer validator keys.** A long-lived top key certifies a fresh bottom key every ~3 days, so key
+  generation becomes a small upfront step plus a steady background job, with no lifetime to choose and about 1 GB of
+  public table per validator. Failing that, rotate keys every 12–18 months ([§8](#8-ethereum-design-decisions-that-make-or-break-dvs)).
+- **A few Ethereum design choices matter.**
+  - **Must:** keep staking in groups as a design goal.
+  - **Top ask:** two-layer keys.
+  - **Should:** confirm threshold-derived encoding randomness (ρ = threshold-PRF(key, message) + i, which works as an
+    undetectable deviation today), and allow higher maximum balances.
 - **Verdict.** Signing is good to go. Minimising trust (no single point of failure) still needs work: a dealer-free
   key generation for safety, and its liveness risks at runtime (periodic MPC, table availability).
 - **Maturity: research.** PRAWNS is a weeks-old preprint with no code. The rest of this page explains why the
@@ -159,8 +162,9 @@ cost liveness, never safety.
   continuously at low priority, nearly free in bandwidth with pseudorandom secret sharing.
 - **The key itself.** Slots are independent, so key generation splits into resumable chunks. It can be throttled,
   scheduled off-peak and restarted per chunk. Next year's key is built during the current key's last month or two.
-- **Encoding randomness.** It must be fixed *after* the message is agreed (§10). Its commit-reveal can ride on QBFT
-  messages, adding no extra round.
+- **Encoding randomness.** ρ = threshold-PRF(key, message) + i: each node attaches its PRF share to its QBFT commit
+  message, so once a node sees a quorum of commits it can rebuild ρ and grind in the clear. No extra round, no
+  commit-reveal bias.
 - **The first key.** It can be short (6 days, under an hour to generate) so a validator activates fast, then rotate
   to a 12-month key. That costs one extra rotation.
 
@@ -175,15 +179,17 @@ cost liveness, never safety.
 | Every slot | QBFT agree → reveal ρ → PRF shares → combine → publish | ~1.5 KiB per node; milliseconds of compute |
 | Every ~3 days | prefetch the next window of the table | ~0.6 GB per validator |
 | Operator change | `F_hash`: rotate early (new key). `F_lat`: reshare | one extra rotation, or open research |
-| Every 12–18 months | rotate to the pre-built next key | ~0.3% of annual reward today (queue plus ~27 h without reward) |
+| Every ~3 days (two-layer keys) | build the next bottom tree by MPC; certify it with the top key (PRAWNS) | ~100–300 GB per node per validator, 13–40 min at 1 Gbps |
+| Every 12–18 months (single-layer fallback) | rotate to the pre-built next key | ~0.3% of annual reward today (queue plus ~27 h without reward) |
 
 ## 8. Ethereum design decisions that make or break DVs
 
 | Priority | Decision | Why |
 |---|---|---|
-| **Must** | encoding randomness ρ supplied by the signer after the message is agreed (not derived from the secret seed) | otherwise every signature needs a PRF inside MPC (≈ 2¹⁵ BLAKE2s calls), which misses the slot |
 | **Must** | staking in groups stays an explicit design goal | Vitalik, ethresear.ch 2026-07: "personally strongly in favor"[^elc] |
-| Should | key rotation without exit and re-deposit, every ≤ 12–18 months (the Extremely Lean Chain's "option 2") | caps key generation at a yearly background job; operator changes at rotation. Without it: pick a key range up front and exit at its end |
+| **Should (top ask)** | two-layer validator keys: a long-lived top key certifies a fresh ~3-day bottom tree, ideally registered once per window | key generation becomes a small upfront step plus background chunks; no lifetime to choose; ~1.2 GB public table; also speeds up every validator's key generation |
+| Should | bless threshold-derived encoding randomness: ρ = H + i, with H = threshold-PRF(key, message) and i the smallest valid increment | grinding needs no secret; H's shares ride on QBFT commits; unbiasable and deterministic. Works today as a deviation verifiers can't see |
+| Should (fallback) | key rotation without exit and re-deposit, every ≤ 12–18 months | only if keys stay single-layer |
 | Should | index proposal keys by proposal duties assigned, not by slot | nearly halves key generation |
 | Should | higher maximum balance (2¹⁷–2²⁰ ETH, i.e. 131k–1.05M ETH) | another 64–512× fewer keys per ETH after 2048 |
 | Should | fewer chain steps per slot, v·(2^w − 1) | cost is linear in it |
@@ -222,6 +228,7 @@ an audit.
   validators or unmetered links.
 - **ρ must be unpredictable to whoever picks the message.** If ρ were derived from public data, a Byzantine leader
   could search for two messages with the same encoding (about 2⁶⁴ work), and one honest signature would then sign both.
+  Deriving it from a threshold PRF of the message, as in §6, closes this.
 - **Key generation is a new liveness risk.** A multi-day MPC with one Byzantine node can abort. It needs identifiable
   abort and per-chunk restart. Twelve-month keys under an 18-month cap leave six months of slack.
 - **Lean consensus slashing rules aren't final.** The cost of the black-box attack above (framing) depends on them.

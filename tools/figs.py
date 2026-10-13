@@ -16,13 +16,13 @@ ROWS = [  # label, first stage, last stage, colour, bar text
     ('Store public table (f+1 or remote)', 2, 2, CRIT, '≤74 GB/val-yr'),
     ('Register 52-byte public key', 3, 3, CRIT, 'protocol queue'),
     ('Agree message (QBFT, as today)', 4, 4, CRIT, '≤ ~200 ms'),
-    ('Agree encoding randomness (rho)', 4, 4, CRIT, '+1–2 rounds'),
+    ('Encoding randomness (threshold PRF)', 4, 4, CRIT, 'on QBFT commits'),
     ('PRF shares → combine → publish', 4, 4, CRIT, '~1.5 KiB / node'),
     ('Never-sign-twice record per slot', 4, 7, OFF, 'like a slashing DB'),
-    ('Prefetch next table window', 5, 5, OFF, '~0.6 GB'),
+    ('Two-layer: build + certify next bottom tree', 5, 5, OFF, 'MPC, background'),
     ('F_hash: new key = new validator', 6, 6, RISK, 'full re-keygen'),
     ('F_lat: reshare, same public key', 6, 6, OFF, 'cheap; research'),
-    ('Rotate to pre-built key (12–18 mo)', 7, 7, RISK, 'protocol ask'),
+    ('Single-layer fallback: rotate (12–18 mo)', 7, 7, RISK, 'protocol ask'),
 ]
 
 
@@ -66,7 +66,7 @@ def slot(path):
                                               (3200, 4000, P[4], 'ingest')]),
         dict(label='DV ATTESTATION WITH PRAWNS', header=True),
         dict(label='agree on the message (QBFT)', bars=[(800, 1000, CRIT, 'QBFT')]),
-        dict(label='agree encoding randomness (rho)', bars=[(1000, 1100, CRIT, 'rho')]),
+        dict(label='rho = tPRF(msg) + i (shares on commits)', bars=[(1000, 1020, CRIT, 'grind')]),
         dict(label='each node: PRF shares (no hashing)', bars=[(1100, 1115, CRIT, '')], marks=[]),
         dict(label='send shares to combiner (1 RTT)', bars=[(1115, 1200, CRIT, '')]),
         dict(label='combine, look up cpk, grind, publish', bars=[(1200, 1300, CRIT, 'sign')]),

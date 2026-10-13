@@ -53,25 +53,25 @@
 <text x="16.0" y="265.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Agree message (QBFT, as today)</text>
 <rect x="775.0" y="251.0" width="112.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
 <text x="831.0" y="265.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">≤ ~200 ms</text>
-<text x="16.0" y="295.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Agree encoding randomness (rho)</text>
+<text x="16.0" y="295.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Encoding randomness (threshold PRF)</text>
 <rect x="775.0" y="281.0" width="112.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
-<text x="831.0" y="295.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">+1–2 rounds</text>
+<text x="831.0" y="295.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">on QBFT commits</text>
 <text x="16.0" y="325.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">PRF shares → combine → publish</text>
 <rect x="775.0" y="311.0" width="112.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
 <text x="831.0" y="325.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">~1.5 KiB / node</text>
 <text x="16.0" y="355.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Never-sign-twice record per slot</text>
 <rect x="775.0" y="341.0" width="466.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
 <text x="1008.0" y="355.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">like a slashing DB</text>
-<text x="16.0" y="385.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Prefetch next table window</text>
+<text x="16.0" y="385.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Two-layer: build + certify next bottom tree</text>
 <rect x="893.0" y="371.0" width="112.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
-<text x="949.0" y="385.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">~0.6 GB</text>
+<text x="949.0" y="385.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">MPC, background</text>
 <text x="16.0" y="415.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">F_hash: new key = new validator</text>
 <rect x="1011.0" y="401.0" width="112.0" height="20.0" rx="3" fill="#e34948" fill-opacity="0.9"/>
 <text x="1067.0" y="415.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">full re-keygen</text>
 <text x="16.0" y="445.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">F_lat: reshare, same public key</text>
 <rect x="1011.0" y="431.0" width="112.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
 <text x="1067.0" y="445.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">cheap; research</text>
-<text x="16.0" y="475.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Rotate to pre-built key (12–18 mo)</text>
+<text x="16.0" y="475.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Single-layer fallback: rotate (12–18 mo)</text>
 <rect x="1129.0" y="461.0" width="112.0" height="20.0" rx="3" fill="#e34948" fill-opacity="0.9"/>
 <text x="1185.0" y="475.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">protocol ask</text>
 <rect x="300.0" y="506.0" width="14.0" height="10.0" rx="2" fill="#eb6834" fill-opacity="1.0"/>
