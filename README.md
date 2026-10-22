@@ -176,11 +176,10 @@ Ranked detail: [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisi
 
 ![Roadmap](docs/fig/roadmap.svg)
 
-The critical path, registration first ([plans](plans/)):
+The critical path, registration first:
 1. **charon: BLS-authorized registration.** Sign `PQKeyRegistration` once per validator and broadcast it. Test with
    dealer keys on devnets.
-2. **Top-layer MPC key generation:** Keccak-f in 3–4-party Boolean MPC, the 2¹² top range, and the proof of
-   possession signed in MPC.
+2. **Top-layer MPC key generation** and the proof of possession.
 3. **Owner path:** PQ key authorization in withdrawal contracts (on hold).
 4. **Top-layer resharing** across the dormant period.
 5. **Then, as the switch fork takes shape:** bottom-tree MPC, PRAWNS signing, the leaf allocator, and a threshold
@@ -205,7 +204,6 @@ The critical path, registration first ([plans](plans/)):
 
 | | |
 |---|---|
-| [`plans/`](plans/) | engineering plans: registration signing, top-layer MPC key generation, top-layer resharing |
 | [`docs/eip-8450.md`](docs/eip-8450.md) | EIP-8450 read for DVs: issues, opportunities, what to build now, asks |
 | [`docs/two-layer-keys.md`](docs/two-layer-keys.md) | the two-layer design: options, sizes, security rules, DV design, prior art |
 | [`docs/prawns.md`](docs/prawns.md) | PRAWNS construction, threshold condition, randomness, why key generation needs MPC |
