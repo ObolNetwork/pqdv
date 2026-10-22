@@ -79,7 +79,9 @@ on the signing side.
       commit-reveal).
     - The paper discusses the same issue for eTCR encodings (Remark 4) and hypertree pruning (§3.4, p. 15).
   - **The context should bind (slot, message, ρ).**
-  - **Needs sign-off:** the leanSig proofs assume a seed-derived ρ.
+  - **Status:** the leanXMSS threshold sketch derives the randomizer base from a threshold PRF in the same way, and
+    EIP-8450 makes randomizer derivation "not consensus-critical". Its security proof still assumes a seed-derived
+    ρ.
 
 ## 3. Security model and gaps
 

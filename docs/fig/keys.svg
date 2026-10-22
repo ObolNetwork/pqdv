@@ -1,43 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520" font-family="Helvetica, Arial, sans-serif">
-<!-- Illustrative structure; sizes for draft leanSig parameters (BLAKE2s, 42 chains, 128-bit values). -->
+<!-- Illustrative structure; EIP-8450 parameters (Keccak-256, 58 chains, 16-byte values). -->
 <rect x="0" y="0" width="1100" height="520" fill="#ffffff"/>
-<text x="16.0" y="26.0" font-size="15" fill="#0b0b0b" text-anchor="start" font-weight="bold">A two-layer validator key</text>
-<text x="16.0" y="44.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">The public key commits only to the top layer. Each ~3-day window gets a fresh bottom tree, certified once by one top-layer one-time key.</text>
-<rect x="470.0" y="62.0" width="160.0" height="30.0" rx="4" fill="#0b0b0b" fill-opacity="1.0"/>
-<text x="550.0" y="82.0" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold">validator public key</text>
+<text x="16.0" y="26.0" font-size="15" fill="#0b0b0b" text-anchor="start" font-weight="bold">A two-layer validator key (EIP-8450 leanXMSS)</text>
+<text x="16.0" y="44.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">The registered public key commits only to the top layer. Each bottom tree is built when needed and certified once by one top-layer one-time key.</text>
+<rect x="455.0" y="62.0" width="190.0" height="30.0" rx="4" fill="#0b0b0b" fill-opacity="1.0"/>
+<text x="550.0" y="82.0" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold">registered public key (32 B)</text>
 <path d="M550,98 L300,210 L800,210 Z" fill="#4a3aa7" fill-opacity="0.15" stroke="#4a3aa7" stroke-width="2"/>
 <text x="550.0" y="160.0" font-size="11.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">top layer: 65,536 one-time keys</text>
-<text x="550.0" y="177.0" font-size="10.5" fill="#52514e" text-anchor="middle" font-weight="normal">built once, jointly (MPC); one key per window</text>
+<text x="550.0" y="177.0" font-size="10.5" fill="#52514e" text-anchor="middle" font-weight="normal">built once, jointly (MPC); top key b certifies bottom tree b</text>
 <circle cx="360.0" cy="210.0" r="7" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
 <line x1="360.0" y1="217.0" x2="360.0" y2="300.0" stroke="#2a78d6" stroke-width="2"/>
-<text x="368.0" y="262.0" font-size="9.5" fill="#52514e" text-anchor="start" font-weight="normal">certificate</text>
-<text x="368.0" y="274.0" font-size="9.5" fill="#8a8984" text-anchor="start" font-weight="normal">(posted once)</text>
+<text x="368.0" y="262.0" font-size="9.5" fill="#52514e" text-anchor="start" font-weight="normal">certification</text>
+<text x="368.0" y="274.0" font-size="9.5" fill="#8a8984" text-anchor="start" font-weight="normal">(computed once)</text>
 <path d="M360,300 L275,400 L445,400 Z" fill="#2a78d6" fill-opacity="0.18" stroke="#2a78d6" stroke-width="2"/>
-<text x="360.0" y="372.0" font-size="11" fill="#0b0b0b" text-anchor="middle" font-weight="bold">window 1</text>
+<text x="360.0" y="372.0" font-size="11" fill="#0b0b0b" text-anchor="middle" font-weight="bold">bottom tree 1</text>
 <text x="360.0" y="388.0" font-size="10" fill="#52514e" text-anchor="middle" font-weight="normal">signing now</text>
 <text x="360.0" y="418.0" font-size="10" fill="#52514e" text-anchor="middle" font-weight="normal">65,536 one-time keys</text>
-<text x="360.0" y="432.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">(one per slot, ~3 days)</text>
+<text x="360.0" y="432.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">(one per signature)</text>
 <circle cx="550.0" cy="210.0" r="7" fill="#1baf7a" stroke="#ffffff" stroke-width="2"/>
 <line x1="550.0" y1="217.0" x2="550.0" y2="300.0" stroke="#1baf7a" stroke-width="2"/>
-<text x="558.0" y="262.0" font-size="9.5" fill="#52514e" text-anchor="start" font-weight="normal">certificate</text>
-<text x="558.0" y="274.0" font-size="9.5" fill="#8a8984" text-anchor="start" font-weight="normal">(posted once)</text>
+<text x="558.0" y="262.0" font-size="9.5" fill="#52514e" text-anchor="start" font-weight="normal">certification</text>
+<text x="558.0" y="274.0" font-size="9.5" fill="#8a8984" text-anchor="start" font-weight="normal">(computed once)</text>
 <path d="M550,300 L465,400 L635,400 Z" fill="#1baf7a" fill-opacity="0.18" stroke="#1baf7a" stroke-width="2"/>
-<text x="550.0" y="372.0" font-size="11" fill="#0b0b0b" text-anchor="middle" font-weight="bold">window 2</text>
+<text x="550.0" y="372.0" font-size="11" fill="#0b0b0b" text-anchor="middle" font-weight="bold">bottom tree 2</text>
 <text x="550.0" y="388.0" font-size="10" fill="#52514e" text-anchor="middle" font-weight="normal">ready</text>
 <text x="550.0" y="418.0" font-size="10" fill="#52514e" text-anchor="middle" font-weight="normal">65,536 one-time keys</text>
-<text x="550.0" y="432.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">(one per slot, ~3 days)</text>
+<text x="550.0" y="432.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">(one per signature)</text>
 <circle cx="740.0" cy="210.0" r="7" fill="#eda100" stroke="#ffffff" stroke-width="2"/>
 <line x1="740.0" y1="217.0" x2="740.0" y2="300.0" stroke="#eda100" stroke-width="2" stroke-dasharray="5,4"/>
-<text x="748.0" y="262.0" font-size="9.5" fill="#52514e" text-anchor="start" font-weight="normal">certificate</text>
-<text x="748.0" y="274.0" font-size="9.5" fill="#8a8984" text-anchor="start" font-weight="normal">(posted once)</text>
+<text x="748.0" y="262.0" font-size="9.5" fill="#52514e" text-anchor="start" font-weight="normal">certification</text>
+<text x="748.0" y="274.0" font-size="9.5" fill="#8a8984" text-anchor="start" font-weight="normal">(computed once)</text>
 <path d="M740,300 L655,400 L825,400 Z" fill="#eda100" fill-opacity="0.18" stroke="#eda100" stroke-width="2" stroke-dasharray="6,4"/>
-<text x="740.0" y="372.0" font-size="11" fill="#0b0b0b" text-anchor="middle" font-weight="bold">window 3</text>
+<text x="740.0" y="372.0" font-size="11" fill="#0b0b0b" text-anchor="middle" font-weight="bold">bottom tree 3</text>
 <text x="740.0" y="388.0" font-size="10" fill="#52514e" text-anchor="middle" font-weight="normal">being built</text>
 <text x="740.0" y="418.0" font-size="10" fill="#52514e" text-anchor="middle" font-weight="normal">65,536 one-time keys</text>
-<text x="740.0" y="432.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">(one per slot, ~3 days)</text>
-<text x="840.0" y="352.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">… 65,536 windows</text>
-<text x="840.0" y="368.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">= 2³² slots ≈ 544 years</text>
-<text x="16.0" y="470.0" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Per-slot signature (~952 B): one one-time signature + a 16-level path to the current window's certified root.</text>
-<text x="16.0" y="488.0" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Once per window (~950 B): a top-layer one-time signature over the new window's root, registered on-chain or inside a periodic proof.</text>
-<text x="16.0" y="506.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">Today's single tree instead fixes every slot's key up front: 1,208 B signatures and key generation for the whole activation range.</text>
+<text x="740.0" y="432.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">(one per signature)</text>
+<text x="840.0" y="352.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">… 65,536 bottom trees</text>
+<text x="840.0" y="368.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">= 2³² leaf indices</text>
+<text x="16.0" y="470.0" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Signature (2,404 B): the bottom one-time signature + its 16-level path, then the top certification + its 16-level path.</text>
+<text x="16.0" y="488.0" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">The certification is computed once per bottom tree and reused in every signature from it, so the top secrets can stay cold.</text>
+<text x="16.0" y="506.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">A single tree of height 32 would sign in 1,460 B, but its key generation covers all 2³² one-time keys up front.</text>
 </svg>

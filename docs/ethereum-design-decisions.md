@@ -1,28 +1,33 @@
 # Lean Ethereum design decisions that make or break distributed validators
 
-Ranked by impact on whether threshold leanSig (PRAWNS signing plus MPC key generation) is viable. "Must" means
-DVs don't work without it. Numbers come from [`dkg-and-mpc-costs.md`](dkg-and-mpc-costs.md) (`tools/cost_model.py`).
+Ranked by impact on whether threshold leanXMSS (PRAWNS signing plus MPC key generation) is viable. Numbers come from [`dkg-and-mpc-costs.md`](dkg-and-mpc-costs.md) (`tools/cost_model.py`).
 
 ## Ranked list
 
+[EIP-8450](eip-8450.md) (October 2026) settles the top of our earlier list: two-layer keys, one key for all duties, a
+classic hash, signer-chosen leaf indices and replacement without exit. What remains, ranked:
+
 | # | Priority | Decision | Why it matters | Current state (Oct 2026) |
 |---|---|---|---|---|
-| 1 | **Top ask** | **Two-layer validator keys, each window certified once** (["option B"](two-layer-keys.md)) | Turns DV key generation into a few-hour one-off plus a 1–3-hour background job per ~3-day window (200 Mbps). For every validator: 21% smaller signatures, 11% cheaper aggregation, key generation in minutes, no lifetime to choose, and a long-lived key that can stay cold | single tree; its top/bottom split only saves memory. Hypertrees already exist in leanVM (leanSPHINCS) |
-| 2 | **Ask** | **Bless threshold-derived signing randomness**: ρ = H + i, where H = threshold-PRF(key, message) and i is the smallest valid increment | Grinding becomes public hashing; H's shares ride on QBFT commit messages, so there's no extra round. Unpredictable below threshold, deterministic, unbiasable. Verifiers can't tell the difference, so it works as a deviation today; the ask is to cover it in the spec and proofs | leanSig derives ρ from the seed |
-| 3 | **Principle** | **Keep staking in groups / MPC-friendliness as an explicit design goal** | Keeps every other choice compatible by default | supported in public discussion |
-| 4 | Helps | **Index proposal keys by proposal duties assigned, not by slot** | A missed or orphaned block never reuses a leaf, and the proposal key shrinks to a few thousand leaves: about **halves** DV key generation | slot-indexed |
-| 5 | Helps | **Higher maximum effective balance** | Cost is per key, not per ETH: 2048 → 2¹⁷–2²⁰ ETH (131,072 / 262,144 / 524,288 / 1,048,576) is 64–512× fewer keys | 2048 ETH |
-| 6 | Helps | **Fewer chain steps per slot, v·(2^w − 1)** | Key generation is linear in it (294 in the draft set) | being tuned |
-| 7 | Helps | **A standard signature format with no proof-only shortcuts** | Keeps PRAWNS output valid as is | fine today |
-| 8 | Nice | **Hash choice** | Arithmetic-friendly hashes would make MPC 2–10× cheaper, but classic hashes are the safer choice and we plan for BLAKE | classic hash |
-| 9 | Nice | **Spec-level durable signing records** (slots and window certificates) | Aligns client and DV slashing protection | leanSpec PR #1204 |
-| 10 | Nice | **Slashing semantics made explicit**, including double window certificates | Sets the blast radius of mistakes | unspecified |
-| 11 | Fallback | **Key rotation without exit**, every ≤ 12–18 months, with no reward gap | Only needed if keys stay single-layer | not in leanSpec |
+| 1 | **Ask** | **Recommend dense leaf allocation; keep the switch fork allocation-agnostic** | Every bottom tree is an MPC for a DV. Dense allocation (synchronized attestations, counter ranges for other duties) needs one tree per 2¹⁶ signatures; a fixed schedule of 8 leaves per slot costs up to **128×** more | EIP-8450 allows both, and gives fixed allocation with *k* = 8 as an example |
+| 2 | **Ask** | **State the bottom-tree rule as an outcome**: a top key never certifies two roots, and the signer records a certification before releasing signatures from the tree | Threshold signers have no seed to derive bottom trees from | EIP-8450: "MUST be derived deterministically from the seed" |
+| 3 | **Ask** | **Key-authorized replacement**: the registered key signs its successor at a reserved leaf | Post-quantum rotation for validators whose withdrawal contract can't make the owner-path request, plus operator changes and version migrations | replacement only through the withdrawal address |
+| 4 | **Ask** | **A threshold profile for EIP-8310 keystores** | Shares, public tables and certification records instead of a seed | EIP-8310 stores a seed |
+| 5 | Helps | **Weigh grinding against verification** when the duty cadence is fixed | 2²⁰ trials per signature (0.1–0.4 s CPU) sit after consensus for threshold signers, and add up with per-slot attesting | ~2²⁰ trials |
+| 6 | Helps | **Higher maximum effective balance** | Cost is per key, not per ETH: 2048 → 2¹⁷–2²⁰ ETH is 64–512× fewer keys | 2048 ETH |
+| 7 | Principle | **Keep staking in groups an explicit design goal** | Keeps every other choice compatible by default | DVs named in EIP-8450's rationale; leanXMSS sketches a threshold signer |
+| — | ✅ settled | Two-layer keys (2¹⁶ × 2¹⁶) | Bounds every MPC to 2¹⁶ one-time keys | EIP-8450 |
+| — | ✅ settled | Threshold-derived randomness, ρ = threshold-PRF(key, message) + i | Grinding becomes public; shares ride on QBFT commits | leanXMSS threshold sketch; "not consensus-critical" |
+| — | ✅ settled | One key for all duties, signer-chosen leaves | Replaces the attestation/proposal key pair: halves DV key generation | EIP-8450 |
+| — | ✅ settled | Classic hash, standard signature format | Keccak-f has AND-depth 24, so DV key generation is a few dozen MPC rounds | Keccak-256 |
+| — | ✅ settled | Replacement without exit | Bad keys and migrations don't force exits | owner path |
+| — | dropped | Certified windows ("option B") | Same MPC as the stateless form; only signature size differs | EIP-8450 chose stateless: +944 B per signature, no per-block certifications |
 
 ## Two-layer validator keys
 
-The top ask has its own page: [`two-layer-keys.md`](two-layer-keys.md). It covers the plain-terms explanation, the
-stateless and certified options, safety rules, the DV design, costs, tuning and prior art in the lean repos.
+The structure has its own page: [`two-layer-keys.md`](two-layer-keys.md). It covers the explanation, the stateless and
+certified options, safety rules, the DV design, costs and prior art. The DV reading of EIP-8450 is in
+[`eip-8450.md`](eip-8450.md).
 
 ## Higher maximum balance
 
@@ -56,7 +61,7 @@ To keep slashing possible it suggests either:
 1. deterministic daily keys from a seed fixed at deposit; or
 2. a proof that walks previous slashings. This one "enables key rotation without a withdraw-and-deposit loop".
 
-**What daily keys would mean for DVs** (BLAKE2s, both keys; needs a smaller-tree leanSig parameter set):
+**What daily keys would mean for DVs** (earlier BLAKE2s estimate with two keys; needs a smaller-tree parameter set):
 
 | | Yearly key | Daily key |
 |---|---|---|
@@ -80,14 +85,15 @@ To keep slashing possible it suggests either:
   monitoring and decentralisation metrics.
 
 **How it fits two-layer keys.**
-- **A natural home for the certificate.** The once-per-period proof is where the window certificate ([option
-  B](two-layer-keys.md)) can be checked, *privately*: "I hold a valid top-layer certificate for this new root, under
-  some deposited key".
+- **A natural home for certified roots.** EIP-8450 carries the top certification in every signature. If a later key
+  version moves to certified roots ([option B](two-layer-keys.md#2-two-ways-to-verify)), the once-per-period proof is
+  where the certificate can be checked, *privately*: "I hold a valid top-layer certificate for this new root, under
+  some registered key".
 - **What a DV needs:**
   - the per-period key generation is the two-layer bottom tree;
   - the proof's inputs are known to every node in the cluster, so no MPC proving is needed.
 
 **Ask.** If this direction proceeds:
-- check the window certificate inside the periodic proof;
+- check certified roots inside the periodic proof, if a later key version uses them;
 - prefer option 2 (rotation by proof) over seed-derived keys;
 - keep a grace window so a late key generation costs one missed period at most.

@@ -1,9 +1,28 @@
-# leanSig: what a threshold scheme has to produce
+# leanSig and leanXMSS: what a threshold scheme has to produce
 
 Snapshot from the leanEthereum repositories (leanSig, leanSpec, leanVM, pm) and `ethereum/cryptography-specs`,
 October 2026. Paths are relative to each repository.
 
-## Two parameter sets in flight
+## The registered scheme: leanXMSS (EIP-8450)
+
+[EIP-8450](eip-8450.md) (Draft, October 2026) registers one leanXMSS key per validator, as specified in leanVM
+`doc/lean_xmss` on its Keccak branch:
+
+| | leanXMSS (EIP-8450) |
+|---|---|
+| Hash | **Keccak-256** truncated to 16 bytes, in leanVM's cell encoding |
+| Structure | two layers of height 16; top key *b* signs the root of bottom tree *b*; 2³² leaf indices |
+| Chains × steps | 58 chains, positions 0–3 (3 steps); target sum 106 replaces the checksum |
+| Grinding | ~2²⁰ randomizer trials per signature, one permutation each |
+| Public key / signature | 32 B / 2,404 B |
+| Verification | 186 Keccak-f permutations |
+| Keys per validator | one, for all duties; the signer allocates leaf indices |
+| Threshold | a non-normative sketch after PRAWNS: threshold-PRF chain starts and randomizer, MPC at key generation and once per bottom tree |
+
+The leanVM main branch carries the same scheme over BLAKE2s (201 compressions to verify), so the hash moved within
+weeks. The tables below are the earlier sets our first estimates used.
+
+## Earlier parameter sets
 
 | | **A. Devnet set** (leanSig `Devnet 4`, leanSpec `PROD_CONFIG`) | **B. Draft spec** (leanVM `doc/xmss`, cryptography-specs `Xmss/`) |
 |---|---|---|
@@ -46,10 +65,11 @@ Devnets run set A. Set B is where the cryptography track is heading. Nothing we 
 - **Slots.** 4 s each, five 800 ms intervals. Block production at interval 0, attestation at interval 1, aggregation at
   interval 2 (`leanSpec/src/lean_spec/spec/forks/lstar/config.py`, `timeline.py`). The XMSS "epoch" is the slot.
 - **Every validator attests every slot.**
-- **Two keys per validator:** `attestation_public_key` and `proposal_public_key`
-  (`leanSpec/.../containers/validator.py`), so key generation cost doubles.
-- **No key rotation:** "Fixed lifetime (2³²) to avoid key rotation complexity … Validators can generate fewer keys
-  for shorter activation periods" (pm, leanConsensus meeting 08).
+- **Two keys per validator on devnets:** `attestation_public_key` and `proposal_public_key`
+  (`leanSpec/.../containers/validator.py`). EIP-8450 replaces them with one key.
+- **No key rotation on devnets:** "Fixed lifetime (2³²) to avoid key rotation complexity … Validators can generate
+  fewer keys for shorter activation periods" (pm, leanConsensus meeting 08). EIP-8450 adds replacement through the
+  withdrawal address.
 
 ## Signing and state
 
@@ -73,16 +93,21 @@ so a threshold scheme whose output is a normal leanSig signature needs no protoc
 
 ## Threshold / DVT in the lean repos
 
-A search across leanSig, leanSpec, leanVM, leanBench, pm, sig.golf and ots.golf found **no** mention of threshold
-signing, distributed validators, MPC or PRAWNS in the signature context. This is a gap worth raising with the
-leanSig / lean consensus teams: two-layer keys, threshold-derived ρ and the hash choice all move the DV cost by large factors
-(see [`dkg-and-mpc-costs.md`](dkg-and-mpc-costs.md) §5).
+Until October 2026, a search across leanSig, leanSpec, leanVM, leanBench, pm, sig.golf and ots.golf found no
+mention of threshold signing in the signature context. That has changed:
+- **The leanXMSS specification** (leanVM `doc/lean_xmss`, "Threshold signing") sketches a PRAWNS-based threshold
+  signer. Chain starts and the randomizer base come from a threshold PRF; signing takes no MPC; MPC runs "at key
+  generation and once per bottom tree". It estimates 55 GB per bottom tree per operator at one bit per AND.
+- **EIP-8450** names distributed validators in its rationale and sizes the two-layer design around them.
+
+The remaining DV issues are in [`eip-8450.md`](eip-8450.md).
 
 ## Maturity and timeline
 
 - **leanSig:** last commit "Devnet 4" (2026-04).
-- **leanVM:** moved to BLAKE2s in September 2026. XMSS details are still changing (open PRs on tweaks; digests
-  differ between leanVM and cryptography-specs).
+- **leanVM:** moved to BLAKE2s in September 2026, then specified leanXMSS over Keccak on a branch that EIP-8450
+  (October 2026) follows. Not yet merged.
+- **EIP-8450:** Draft. It registers dormant keys in the fork after Heze; a later fork switches duties to them.
 - **ots.golf** is still optimising one-time signature verification cost, so v and w may change.
-- **No ship date** for post-quantum consensus appears anywhere. The only dated hint is "crypto specs by end-2026;
+- **No ship date** for the duty switch appears anywhere. The only dated hint is "crypto specs by end-2026;
   2027 for compiler stack and consensus specs/implementations", from a formal-verification talk.
