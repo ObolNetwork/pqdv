@@ -21,10 +21,12 @@ post-quantum key registry, [EIP-8450](docs/eip-8450.md), has now adopted the key
 
   No key lifetime to pick, and operator changes keep the same registered key.
 - **What we still ask of Ethereum:**
-  1. recommend dense leaf allocation (fixed per-slot schedules cost DVs up to 128× more);
-  2. state the bottom-tree rule as an outcome, not "derived from a seed";
-  3. let a registered key authorize its own replacement;
-  4. a threshold profile for post-quantum keystores.
+  1. **a much higher maximum balance (2¹⁷–2²⁰ ETH):** every post-quantum cost is per key, so this means 64–512× fewer
+     keys;
+  2. recommend dense leaf allocation (fixed per-slot schedules cost DVs up to 128× more);
+  3. state the bottom-tree rule as an outcome, not "derived from a seed";
+  4. let a registered key authorize its own replacement;
+  5. a threshold profile for post-quantum keystores.
 - **Status:** the cryptography exists, the costs are known, and the registry lets DV keys go on-chain long before they
   sign anything. The [roadmap](#8-roadmap) starts with registration.
 
@@ -120,6 +122,9 @@ Per validator, per node, Keccak-f in 3–4-party Boolean MPC:
   - per-slot attesting at 4 s: every 3 days, 1.7–5 Mbps, or 20–60 validators per node on half a 200 Mbps link.
 
   A fixed schedule of 8 leaves per slot would multiply these by 8 to 128.
+- **Planning case: a tree every ~3 days.** With decoupled consensus (EIP-8453), head-vote committees are sampled by
+  balance, so a large-balance key signs nearly every slot. That cost no longer grows with the key's ETH, which is why
+  a higher maximum balance helps so much.
 - **The top range.** Top keys that will never certify a tree can be random filler. 2¹² real ones last ≥ 34 years at
   4 s slots, at 1/16 of the cost.
 - **Latency doesn't matter.** Keccak has AND-depth 24, so a whole tree is about 72 MPC rounds deep.
@@ -152,12 +157,12 @@ replacement without exit. What remains:
 
 | | ask | why it matters |
 |---|---|---|
-| 1 | **Recommend dense leaf allocation**, and keep the switch fork allocation-agnostic | every bottom tree is an MPC for a DV; fixed per-slot schedules cost up to 128× more |
-| 2 | **State the bottom-tree rule as an outcome**: a top key never certifies two roots | threshold signers have no seed to derive trees from |
-| 3 | **Key-authorized replacement**: a registered key signs its successor | rotation for validators whose withdrawal contract can't make the owner-path request |
-| 4 | **A threshold profile for EIP-8310 keystores** | shares, tables and certification records instead of a seed |
-| 5 | weigh grinding (2²⁰ trials per signature) against verification | it sits after consensus for threshold signers |
-| 6 | higher maximum balance (2¹⁷–2²⁰ ETH) | fewer keys per ETH, so less key generation per ETH |
+| 1 | **A much higher maximum effective balance: 2048 → 2¹⁷–2²⁰ ETH** | registrations, registry state, 2.4 KB signatures to aggregate, grinding and DV key generation are all per key; consolidated stake needs 64–512× fewer keys |
+| 2 | **Recommend dense leaf allocation**, and keep the switch fork allocation-agnostic | every bottom tree is an MPC for a DV; fixed per-slot schedules cost up to 128× more |
+| 3 | **State the bottom-tree rule as an outcome**: a top key never certifies two roots | threshold signers have no seed to derive trees from |
+| 4 | **Key-authorized replacement**: a registered key signs its successor | rotation for validators whose withdrawal contract can't make the owner-path request |
+| 5 | **A threshold profile for EIP-8310 keystores** | shares, tables and certification records instead of a seed |
+| 6 | weigh grinding (2²⁰ trials per signature) against verification | it sits after consensus for threshold signers |
 
 Why two-layer keys make staking more secure:
 - **No forced single point of failure.** Without a threshold-friendly key structure, every post-quantum validator key
@@ -165,19 +170,18 @@ Why two-layer keys make staking more secure:
 - **A cold root for everyone.** The long-lived top key signs once per bottom tree, so it can stay offline. A hot-machine
   compromise exposes only the trees that machine holds.
 
-Ranked detail: [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisions.md). Draft feedback for the EIP
-thread: [`docs/eip-8450.md`](docs/eip-8450.md#6-feedback-to-post).
+Ranked detail: [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisions.md).
 
 ## 8. Roadmap
 
 ![Roadmap](docs/fig/roadmap.svg)
 
-The critical path, registration first:
+The critical path, registration first ([plans](plans/)):
 1. **charon: BLS-authorized registration.** Sign `PQKeyRegistration` once per validator and broadcast it. Test with
    dealer keys on devnets.
 2. **Top-layer MPC key generation:** Keccak-f in 3–4-party Boolean MPC, the 2¹² top range, and the proof of
    possession signed in MPC.
-3. **Owner path:** PQ key authorization in withdrawal contracts.
+3. **Owner path:** PQ key authorization in withdrawal contracts (on hold).
 4. **Top-layer resharing** across the dormant period.
 5. **Then, as the switch fork takes shape:** bottom-tree MPC, PRAWNS signing, the leaf allocator, and a threshold
    two-layer security proof. Audit and hardening.
@@ -201,7 +205,8 @@ The critical path, registration first:
 
 | | |
 |---|---|
-| [`docs/eip-8450.md`](docs/eip-8450.md) | EIP-8450 read for DVs: issues, opportunities, what to build now, feedback to post |
+| [`plans/`](plans/) | engineering plans: registration signing, top-layer MPC key generation, top-layer resharing |
+| [`docs/eip-8450.md`](docs/eip-8450.md) | EIP-8450 read for DVs: issues, opportunities, what to build now, asks |
 | [`docs/two-layer-keys.md`](docs/two-layer-keys.md) | the two-layer design: options, sizes, security rules, DV design, prior art |
 | [`docs/prawns.md`](docs/prawns.md) | PRAWNS construction, threshold condition, randomness, why key generation needs MPC |
 | [`docs/dkg-and-mpc-costs.md`](docs/dkg-and-mpc-costs.md) | cost model: per-hash MPC costs, key generation, storage, earlier BLAKE2s and Poseidon estimates |
