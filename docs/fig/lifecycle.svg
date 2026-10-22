@@ -1,70 +1,77 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1208" height="496" viewBox="0 0 1208 496" font-family="Helvetica, Arial, sans-serif">
-<!-- Sources: PRAWNS (ePrint 2026/2142), leanSpec/leanSig repos, tools/cost_model.py - -primary -->
-<rect x="0" y="0" width="1208" height="496" fill="#ffffff"/>
-<text x="16.0" y="26.0" font-size="15" fill="#0b0b0b" text-anchor="start" font-weight="bold">A distributed validator's life with two-layer keys</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1208" height="556" viewBox="0 0 1208 556" font-family="Helvetica, Arial, sans-serif">
+<!-- Sources: EIP-8450, PRAWNS (ePrint 2026/2142), tools/cost_model.py - -primary -->
+<rect x="0" y="0" width="1208" height="556" fill="#ffffff"/>
+<text x="16.0" y="26.0" font-size="15" fill="#0b0b0b" text-anchor="start" font-weight="bold">A distributed validator's life with EIP-8450 keys</text>
 <text x="16.0" y="44.0" font-size="11" fill="#8a8984" text-anchor="start" font-weight="normal">Columns are lifecycle stages (not to scale). Orange = on the critical path to signing; blue = background work.</text>
 <rect x="321.0" y="56.0" width="122.0" height="34.0" rx="3" fill="#f3f2ef" fill-opacity="1.0"/>
 <text x="382.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Cluster</text>
 <text x="382.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">formation</text>
-<line x1="320.0" y1="92.0" x2="320.0" y2="426.0" stroke="#ecebe8" stroke-width="1"/>
+<line x1="320.0" y1="92.0" x2="320.0" y2="486.0" stroke="#ecebe8" stroke-width="1"/>
 <rect x="445.0" y="56.0" width="122.0" height="34.0" rx="3" fill="#f3f2ef" fill-opacity="1.0"/>
-<text x="506.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Key</text>
-<text x="506.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">generation</text>
-<line x1="444.0" y1="92.0" x2="444.0" y2="426.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="506.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Register</text>
+<text x="506.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">(EIP-8450)</text>
+<line x1="444.0" y1="92.0" x2="444.0" y2="486.0" stroke="#ecebe8" stroke-width="1"/>
 <rect x="569.0" y="56.0" width="122.0" height="34.0" rx="3" fill="#f3f2ef" fill-opacity="1.0"/>
-<text x="630.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Deposit &amp;</text>
-<text x="630.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">activation</text>
-<line x1="568.0" y1="92.0" x2="568.0" y2="426.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="630.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Dormant</text>
+<text x="630.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">(BLS signs)</text>
+<line x1="568.0" y1="92.0" x2="568.0" y2="486.0" stroke="#ecebe8" stroke-width="1"/>
 <rect x="693.0" y="56.0" width="122.0" height="34.0" rx="3" fill="#f3f2ef" fill-opacity="1.0"/>
-<text x="754.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Every slot</text>
-<text x="754.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">(4 s)</text>
-<line x1="692.0" y1="92.0" x2="692.0" y2="426.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="754.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Switch</text>
+<text x="754.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">fork</text>
+<line x1="692.0" y1="92.0" x2="692.0" y2="486.0" stroke="#ecebe8" stroke-width="1"/>
 <rect x="817.0" y="56.0" width="122.0" height="34.0" rx="3" fill="#f3f2ef" fill-opacity="1.0"/>
-<text x="878.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Every ~3 days</text>
-<text x="878.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">(new window)</text>
-<line x1="816.0" y1="92.0" x2="816.0" y2="426.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="878.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Every</text>
+<text x="878.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">signature</text>
+<line x1="816.0" y1="92.0" x2="816.0" y2="486.0" stroke="#ecebe8" stroke-width="1"/>
 <rect x="941.0" y="56.0" width="122.0" height="34.0" rx="3" fill="#f3f2ef" fill-opacity="1.0"/>
-<text x="1002.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Operator</text>
-<text x="1002.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">change</text>
-<line x1="940.0" y1="92.0" x2="940.0" y2="426.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="1002.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">New bottom</text>
+<text x="1002.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">tree</text>
+<line x1="940.0" y1="92.0" x2="940.0" y2="486.0" stroke="#ecebe8" stroke-width="1"/>
 <rect x="1065.0" y="56.0" width="122.0" height="34.0" rx="3" fill="#f3f2ef" fill-opacity="1.0"/>
-<text x="1126.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Exit</text>
-<line x1="1064.0" y1="92.0" x2="1064.0" y2="426.0" stroke="#ecebe8" stroke-width="1"/>
+<text x="1126.0" y="70.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">Operator</text>
+<text x="1126.0" y="83.0" font-size="10.5" fill="#0b0b0b" text-anchor="middle" font-weight="bold">change</text>
+<line x1="1064.0" y1="92.0" x2="1064.0" y2="486.0" stroke="#ecebe8" stroke-width="1"/>
 <text x="16.0" y="115.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Agree cluster config, threshold, operators</text>
 <rect x="323.0" y="101.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
 <text x="382.0" y="115.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">minutes (as today)</text>
-<text x="16.0" y="145.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">MPC: top layer + first window</text>
+<text x="16.0" y="145.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">MPC: top layer + proof of possession</text>
 <rect x="447.0" y="131.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
-<text x="506.0" y="145.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">1.6–4.9 h @200M</text>
-<text x="16.0" y="175.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Register the public key</text>
-<rect x="571.0" y="161.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
-<text x="630.0" y="175.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">protocol queue</text>
-<text x="16.0" y="205.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Agree message (QBFT, as today)</text>
-<rect x="695.0" y="191.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
-<text x="754.0" y="205.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">≤ ~200 ms</text>
-<text x="16.0" y="235.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Randomness: threshold PRF on QBFT commits</text>
+<text x="506.0" y="145.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">2–7 min @200M</text>
+<text x="16.0" y="175.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">BLS-sign the registration, once</text>
+<rect x="447.0" y="161.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
+<text x="506.0" y="175.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">one-shot</text>
+<text x="16.0" y="205.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Reshare top-layer shares</text>
+<rect x="571.0" y="191.0" width="118.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
+<text x="630.0" y="205.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">keys stay registered</text>
+<text x="16.0" y="235.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">MPC: first bottom tree; top key certifies it</text>
 <rect x="695.0" y="221.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
-<text x="754.0" y="235.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">no extra round</text>
-<text x="16.0" y="265.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">PRF shares → combine → publish</text>
-<rect x="695.0" y="251.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
-<text x="754.0" y="265.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">~1.5 KiB / node</text>
-<text x="16.0" y="295.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Never-sign-twice records (slots + windows)</text>
-<rect x="695.0" y="281.0" width="490.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
-<text x="940.0" y="295.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">like a slashing DB</text>
-<text x="16.0" y="325.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">MPC: build next window (background)</text>
-<rect x="819.0" y="311.0" width="118.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
-<text x="878.0" y="325.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">1–3 h @200M</text>
-<text x="16.0" y="355.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Certify next window (top-layer signature)</text>
-<rect x="819.0" y="341.0" width="118.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
-<text x="878.0" y="355.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">~950 B, once</text>
-<text x="16.0" y="385.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Reshare top layer; new set builds next window</text>
+<text x="754.0" y="235.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">36–109 min @200M</text>
+<text x="16.0" y="265.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Agree message (QBFT, as today)</text>
+<rect x="819.0" y="251.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
+<text x="878.0" y="265.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">≤ ~200 ms</text>
+<text x="16.0" y="295.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Randomness: threshold PRF on QBFT commits</text>
+<rect x="819.0" y="281.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
+<text x="878.0" y="295.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">no extra round</text>
+<text x="16.0" y="325.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Grind the randomizer (~2^20 Keccak)</text>
+<rect x="819.0" y="311.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
+<text x="878.0" y="325.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">~0.1 s CPU</text>
+<text x="16.0" y="355.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">PRF shares → combine → publish</text>
+<rect x="819.0" y="341.0" width="118.0" height="20.0" rx="3" fill="#eb6834" fill-opacity="0.9"/>
+<text x="878.0" y="355.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">~1–2 KiB / node</text>
+<text x="16.0" y="385.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">MPC: build next bottom tree (background)</text>
 <rect x="943.0" y="371.0" width="118.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
-<text x="1002.0" y="385.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">same validator</text>
-<text x="16.0" y="415.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Key material held per node</text>
-<rect x="447.0" y="401.0" width="738.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
-<text x="816.0" y="415.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">≈ 1.5 GB per validator</text>
-<rect x="320.0" y="446.0" width="14.0" height="10.0" rx="2" fill="#eb6834" fill-opacity="1.0"/>
-<text x="339.0" y="455.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">on the critical path</text>
-<rect x="488.0" y="446.0" width="14.0" height="10.0" rx="2" fill="#2a78d6" fill-opacity="1.0"/>
-<text x="507.0" y="455.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">background / off the critical path</text>
+<text x="1002.0" y="385.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">36–109 min @200M</text>
+<text x="16.0" y="415.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Reshare top layer; new set builds next tree</text>
+<rect x="1067.0" y="401.0" width="118.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
+<text x="1126.0" y="415.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">same key</text>
+<text x="16.0" y="445.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Never-sign-twice (leaves, certifications)</text>
+<rect x="447.0" y="431.0" width="738.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
+<text x="816.0" y="445.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">like a slashing DB</text>
+<text x="16.0" y="475.5" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">Key material held per node</text>
+<rect x="447.0" y="461.0" width="738.0" height="20.0" rx="3" fill="#2a78d6" fill-opacity="0.9"/>
+<text x="816.0" y="475.8" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="normal">≤ 0.55 GB per validator</text>
+<rect x="320.0" y="506.0" width="14.0" height="10.0" rx="2" fill="#eb6834" fill-opacity="1.0"/>
+<text x="339.0" y="515.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">on the critical path</text>
+<rect x="488.0" y="506.0" width="14.0" height="10.0" rx="2" fill="#2a78d6" fill-opacity="1.0"/>
+<text x="507.0" y="515.0" font-size="10.5" fill="#52514e" text-anchor="start" font-weight="normal">background / off the critical path</text>
 </svg>

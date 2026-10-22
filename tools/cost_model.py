@@ -11,6 +11,9 @@ SOURCES = {
     "leanSig set B (draft spec)": "leanVM doc/xmss + crates/xmss: 42 chains, chain length 8 (7 steps), BLAKE2s, ~2^14.85 grinding",
     "lean slots": "leanSpec forks/lstar/config.py: 4 s slots, 5 intervals of 800 ms; attest at interval 1, aggregate at interval 2",
     "keys per validator": "leanSpec containers/validator.py: attestation key + proposal key",
+    "leanXMSS (EIP-8450)": "EIP-8450 + leanVM doc/lean_xmss (Keccak branch): two layers of height 16, 58 chains of "
+                           "positions 0..3, target sum 106, Keccak-256 truncated to 16 B, 2,404 B signatures, "
+                           "186 permutations to verify, ~2^20 grinding trials per signature",
     "pqdv calibration": "pqdv doc/5_benchmarks.tex (MP-SPDZ, 5 parties): malicious Shamir 118.28 GB / 7.51e8 triples, "
                         "ATLAS 23.65 GB / 3.75e8 triples",
 }
@@ -212,13 +215,13 @@ def two_layer():
     print("- Signature (option A stateless): ~1,904 B, ~256 compressions; (option B certified roots): ~952 B, ~128 compressions; today 1,208 B, ~144\n")
 
 
-# ---- PRIMARY SCENARIO: two-layer keys with certified bottom roots ("option B") ------------------------------
+# ---- EARLIER SCENARIO: two-layer keys with certified bottom roots ("option B", BLAKE2s set B) ---------------
 WINDOW_SLOTS = 2 ** 16                         # one bottom tree ≈ 3.03 days of 4 s slots
 CELL_B = 42 * 7 * 16                           # bytes of chain values per one-time key (set B, 128-bit)
 LINKS = {"200 Mbps": 25e6, "1 Gbps": 125e6}    # bytes/s per node
 
 
-def primary():
+def option_b():
     tree = WINDOW_SLOTS * SET_B_STEPS * BLAKE_RIPPLE_AND          # ANDs per tree (one key)
     def traffic(trees):
         return [trees * tree * b / 8 for b in ASSUME_BITS_PER_AND_3PC]
@@ -247,8 +250,61 @@ def primary():
     print("Per-slot signature 952 B (~128 compressions); once-per-window certificate ~950 B. Today: 1,208 B (~144).\n")
 
 
+# ---- PRIMARY SCENARIO: EIP-8450 leanXMSS (two layers, Keccak-256, one key for all duties) -------------------
+XMSS_CHAINS, XMSS_STEPS, XMSS_H = 58, 3, 16
+OTS_ANDS = XMSS_CHAINS * XMSS_STEPS * KECCAK_AND      # chain steps on secret data per one-time key
+TREE_OTS = 2 ** XMSS_H
+TABLE_B = XMSS_CHAINS * 48                            # public table per one-time key: 2 masked middles + end
+TOP_SHARE_B = XMSS_CHAINS * 3 * 16                    # Shamir shares of positions 0..2, per top one-time key
+TOP_RANGE = 2 ** 12                                   # top keys generated for real at registration
+MEASURED_GRIND_S = (0.44, 0.12)                       # 2^20 Keccak-f, Go crypto/sha3, arm64: 1 core, 5 cores
+
+
+def gb(ots):
+    return [ots * OTS_ANDS * b / 8 for b in ASSUME_BITS_PER_AND_3PC]
+
+
+def eip8450():
+    print("## EIP-8450 leanXMSS: DV key generation by MPC (Keccak-f, per validator, per node)\n")
+    print(f"One-time key: {XMSS_CHAINS} chains x {XMSS_STEPS} steps = {XMSS_CHAINS * XMSS_STEPS} Keccak-f on secret "
+          f"data = {OTS_ANDS / 1e6:.2f}M ANDs (AND-depth 24 per step, 72 per key). Chain starts and masks are "
+          "local PRF terms; leaves and Merkle nodes are hashed in the clear.\n")
+    print("| step | one-time keys in MPC | MPC traffic | at 200 Mbps | at 1 Gbps |")
+    print("|---|---|---|---|---|")
+    rows = [("Registration: top range (2^12 top keys) + proof of possession", TOP_RANGE + 1),
+            ("Registration: full top tree (2^16 top keys) + proof of possession", TREE_OTS + 1),
+            ("Each bottom tree (2^16 leaves), one tree ahead", TREE_OTS)]
+    for label, ots in rows:
+        lo, hi = gb(ots)
+        print(f"| {label} | {ots:,} | {fmt_b(lo) if lo >= 1e10 else f'{lo / 1e9:.1f} GB'}–{fmt_b(hi)} | " +
+              " | ".join(f"{fmt_t(lo / bw)}–{fmt_t(hi / bw)}" for bw in LINKS.values()) + " |")
+    print("\n### How often a bottom tree is needed: it depends on leaf allocation\n")
+    print("| duty cadence and allocation | leaves used per slot | one bottom tree lasts | average MPC load per validator | validators per node on half of 200 Mbps |")
+    print("|---|---|---|---|---|")
+    tree = gb(TREE_OTS)
+    cases = [("today's chain (attest once per epoch, 12 s), dense: one leaf per attestation + ~1 other", 12, 2 / 32),
+             ("per-slot attesting at 12 s, dense", 12, 1.0),
+             ("per-slot attesting at 4 s (lean), dense", 4, 1.0),
+             ("fixed allocation, k = 8 leaves per slot, 12 s", 12, 8.0),
+             ("fixed allocation, k = 8 leaves per slot, 4 s", 4, 8.0)]
+    for label, slot_s, per_slot in cases:
+        life = TREE_OTS / per_slot * slot_s
+        mbps = [x * 8 / life / 1e6 for x in tree]
+        cap = 100
+        print(f"| {label} | {per_slot:g} | {fmt_t(life)} | {mbps[0]:.2g}–{mbps[1]:.2g} Mbps | "
+              f"{cap / mbps[1]:,.0f}–{cap / mbps[0]:,.0f} |")
+    print(f"\nStorage per validator per node: top-layer shares {TOP_RANGE * TOP_SHARE_B / 1e6:.0f} MB (2^12 range) or "
+          f"{TREE_OTS * TOP_SHARE_B / 1e6:.0f} MB (full top tree), for life; bottom-layer public tables "
+          f"{TREE_OTS * TABLE_B / 1e6:.0f} MB per tree, two held = {2 * TREE_OTS * TABLE_B / 1e6:.0f} MB.")
+    print(f"Signature 2,404 B, 186 Keccak-f to verify. Grinding ~2^20 Keccak-f per signature: measured "
+          f"{MEASURED_GRIND_S[0]:.2f} s on 1 core, {MEASURED_GRIND_S[1]:.2f} s on 5 cores (Go crypto/sha3, arm64).\n")
+
+
 if __name__ == "__main__" and "--primary" in __import__("sys").argv:
-    primary()
+    eip8450()
+
+if __name__ == "__main__" and "--option-b" in __import__("sys").argv:
+    option_b()
 
 if __name__ == "__main__" and "--blake" in __import__("sys").argv:
     blake_world()
@@ -258,7 +314,7 @@ if __name__ == "__main__" and "--blake" in __import__("sys").argv:
     two_layer()
 
 
-if __name__ == "__main__" and not ({"--blake", "--primary"} & set(__import__("sys").argv)):
+if __name__ == "__main__" and not ({"--blake", "--primary", "--option-b"} & set(__import__("sys").argv)):
     hash_table()
     dkg_table()
     dkg_table(42 * 7, "set B chain count (if it stayed Poseidon)")

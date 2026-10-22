@@ -1,28 +1,32 @@
 # pqdv: post-quantum distributed validators
 
 **Distributed validators carry over to post-quantum Ethereum.** This repo shows how: how a cluster signs, how it
-makes keys without anyone ever holding them, what it costs, and the few protocol choices that make it smooth.
+makes keys without anyone ever holding them, what it costs, and the protocol choices that make it smooth. Ethereum's
+post-quantum key registry, [EIP-8450](docs/eip-8450.md), has now adopted the key structure this depends on.
 
 ## TL;DR
 
 - **Threshold signing is solved.** With PRAWNS[^prawns], each node contributes its share alone, with no multi-party
   computation (MPC) and no hashing of secrets at signing time. The combined output is a **standard signature**, so
-  aggregation and verification are unchanged. It takes milliseconds of a 4-second slot.
-- **Keys are made jointly, in the background.** With **two-layer validator keys**, a long-lived top key certifies a
-  fresh signing key every ~3 days. The cluster generates keys by MPC, so no machine ever holds a full key:
-  - **up front:** 1.6–4.9 hours per validator at 200 Mbps;
-  - **then:** a 1–3-hour background job every ~3 days, about 3–9 Mbps on average;
-  - **stored:** about 1.5 GB per validator.
+  aggregation and verification are unchanged.
+- **Ethereum's key is DV-ready.** EIP-8450 registers one **two-layer leanXMSS key** per validator: a long-lived top
+  key certifies a fresh bottom tree of 65,536 one-time keys whenever one is needed. The leanXMSS specification sketches
+  the same threshold signer we propose.
+- **Keys are made jointly, in the background.** A cluster generates keys by MPC, so no machine ever holds a full key.
+  Per validator, per node, at 200 Mbps:
+  - **register a key:** 2–7 minutes;
+  - **each bottom tree:** 36–109 minutes, built one ahead. It's needed every few months at today's duty cadence, or
+    every 3 days if attestations move to every 4-second slot;
+  - **stored:** about 0.4–0.55 GB.
 
-  No key lifetime to pick, and operator changes keep the same validator.
-- **Two-layer keys are good for all of Ethereum.** Signatures get 21% smaller and cheaper to aggregate, key
-  generation drops to minutes for every validator, and the long-lived key can stay cold.
-- **What we ask of lean Ethereum:**
-  1. two-layer keys, with each window's key certified once (§7);
-  2. bless threshold-derived signing randomness, which works today as an invisible deviation;
-  3. keep staking in groups a design goal.
-- **Status:** the cryptography exists, the costs are known, and the remaining work is engineering, proofs and spec
-  alignment. The [roadmap](#8-roadmap) runs ahead of the post-quantum chain.
+  No key lifetime to pick, and operator changes keep the same registered key.
+- **What we still ask of Ethereum:**
+  1. recommend dense leaf allocation (fixed per-slot schedules cost DVs up to 128× more);
+  2. state the bottom-tree rule as an outcome, not "derived from a seed";
+  3. let a registered key authorize its own replacement;
+  4. a threshold profile for post-quantum keystores.
+- **Status:** the cryptography exists, the costs are known, and the registry lets DV keys go on-chain long before they
+  sign anything. The [roadmap](#8-roadmap) starts with registration.
 
 ---
 
@@ -34,19 +38,19 @@ signatures add up into one. The protocol never needs to know a validator is dist
 
 ## 2. What changes after the post-quantum switch
 
-Lean Ethereum replaces BLS with **leanSig**, a hash-based signature (generalized XMSS). Proofs replace
+Ethereum replaces BLS with **leanXMSS**, a hash-based signature (two-layer XMSS over Keccak-256). Proofs replace
 pairing-based aggregation.
 
-| | BLS (today) | leanSig (post-quantum) |
+| | BLS (today) | leanXMSS (post-quantum) |
 |---|---|---|
-| Secret | one number | a seed expanding into millions of hash chains |
-| Signature | algebraic | reveals points on hash chains, plus a Merkle path |
-| State | slashing protection | each slot's one-time key signs once, ever |
+| Secret | one number | a seed expanding into 2³² one-time keys, each 58 hash chains |
+| Signature | algebraic, 96 B | reveals points on hash chains, plus two Merkle paths: 2,404 B |
+| State | slashing protection | each leaf signs once, ever |
 | Aggregation | add signatures | a zk proof that many standard signatures verify |
 | Threshold signing | algebra | needs a new idea: **PRAWNS** |
 | Distributed key generation | seconds | hashing secrets inside MPC: needs a key structure that allows background generation |
 
-Slots are 4 seconds: attest at 0.8 s, aggregators collect at 1.6 s. Every validator attests every slot.
+EIP-8450 registers these keys in one fork while BLS still signs every duty. A later fork switches duties to them.
 
 ## 3. How a DV signs
 
@@ -54,15 +58,17 @@ Slots are 4 seconds: attest at 0.8 s, aggregators collect at 1.6 s. Every valida
 
 **PRAWNS** precomputes every hash-chain value at key generation and publishes each one *masked* by a threshold
 pseudorandom function (PRF). To sign, nodes send PRF shares for the positions the message selects; a combiner unmasks
-those positions and outputs an ordinary leanSig signature. No secret is hashed at signing time, so signing fits the
-slot with room to spare.
+those positions and outputs an ordinary leanXMSS signature. No secret is hashed at signing time.
 
-- **Randomness.** leanSig signatures include a randomizer ρ, normally derived from the full secret key. A DV uses
-  ρ = threshold-PRF(key, message) + i, where i is the first value that makes the encoding valid. Nodes attach their PRF
-  shares to the QBFT commit messages they already send, so this costs no extra round. It is unbiasable and
-  deterministic, and verifiers can't tell it apart.
+- **Randomness.** Signatures include a randomizer ρ. A DV uses ρ = threshold-PRF(key, message) + i, where i is the
+  first value that makes the encoding valid. Nodes attach their PRF shares to the QBFT commit messages they already
+  send, so this costs no extra round. It is unbiasable and deterministic, and verifiers can't tell it apart.
+  - The leanXMSS threshold sketch derives ρ the same way, and EIP-8450 makes randomizer derivation
+    non-consensus-critical.
+- **Grinding.** Finding i takes about 2²⁰ Keccak permutations: we measured 0.12 s on five cores. It runs after the
+  cluster agrees the message.
 - **Threshold.** PRAWNS needs `t > (n + f)/2`, which charon's `ceil(2n/3)` already meets.
-- **State.** Each node keeps a never-sign-twice record, like today's slashing protection.
+- **State.** Each node keeps a never-sign-twice record per leaf, like today's slashing protection.
 
 Details: [`docs/prawns.md`](docs/prawns.md).
 
@@ -70,28 +76,28 @@ Details: [`docs/prawns.md`](docs/prawns.md).
 
 ![Two-layer key](docs/fig/keys.svg)
 
-**Today's single-tree key** is a book of 4 billion single-use tickets, one per slot. The public key fingerprints the
-whole book, so every ticket must be printed before the key can be published.
+**A single-tree key** is a book of 4 billion single-use tickets. The public key fingerprints the whole book, so every
+ticket must be printed before the key can be published.
 
 **A two-layer key** works like a certificate chain:
-- **Top layer:** a small master book of 65,536 single-use stamps. The public key fingerprints only this book.
-- **Bottom layer:** every ~3 days, a fresh book of 65,536 tickets, certified once by one master stamp.
-- **Validity:** a ticket counts if its book is certified.
+- **Top layer:** a master book of 65,536 single-use stamps. The public key fingerprints only this book.
+- **Bottom layer:** when the current ticket book runs out, a fresh book of 65,536 tickets is printed and stamped once
+  by one master stamp.
+- **Validity:** every signature carries its ticket, its book's stamp, and both fingerprint paths.
 
-Same 2³² slots (~544 years), but only the master book plus the current ticket book ever need to exist.
+Same 2³² tickets, but only the master book plus the current ticket book ever need to exist.
 
-With the certificate registered once per window ("option B"):
-
-| | today (one tree) | two-layer, certified windows |
+| | single tree (height 32) | two layers (EIP-8450) |
 |---|---|---|
-| Signature per slot | 1,208 B | **952 B (−21%)** |
-| Verification per signature (hash compressions) | ~144 | **~128 (−11%)** |
-| Extra on-chain data | — | one ~950 B certificate per validator per ~3 days |
-| Key generation, any validator | every slot in the activation range (hours to days for long ranges) | top layer + one window (minutes) |
+| Signature | 1,460 B | 2,404 B |
+| Verification (Keccak-f permutations) | 109 | 186 |
+| Key generation, any validator | 2³² one-time keys: infeasible without a range | 2¹⁶ one-time keys: seconds |
 | Key lifetime chosen up front | yes | no |
-| Long-lived key | used for every signature | used once per ~3 days, so it can stay **cold** |
+| Long-lived key | used for every signature | signs once per bottom tree, so it can stay **cold** |
+| Distributed key generation | every leaf in the range, up front | the top layer once, then one bottom tree at a time |
 
-Full analysis: [`docs/two-layer-keys.md`](docs/two-layer-keys.md).
+Full analysis: [`docs/two-layer-keys.md`](docs/two-layer-keys.md). What EIP-8450 means for DVs:
+[`docs/eip-8450.md`](docs/eip-8450.md).
 
 ## 5. How a DV makes keys
 
@@ -101,24 +107,27 @@ small and steady:
 
 ![Key generation pipeline](docs/fig/pipeline.svg)
 
-Per validator, per node, BLAKE2s, 3–4-party Boolean MPC:
+Per validator, per node, Keccak-f in 3–4-party Boolean MPC:
 
 | step | MPC traffic | at 200 Mbps | at 1 Gbps |
 |---|---|---|---|
-| **Up front:** top layer + first window | 146–437 GB | **1.6–4.9 h** | 19–58 min |
-| **Every ~3 days:** next window | 97–291 GB | **1–3 h** | 13–39 min |
-| …with proposal keys indexed by duty | 49–146 GB | 32–97 min | 6–19 min |
+| **Registration:** top layer (2¹² real top keys) + proof of possession | 3.4–10 GB | **2–7 min** | 27–82 s |
+| …with the full 2¹⁶ top tree | 55–164 GB | 36–109 min | 7–22 min |
+| **Each bottom tree**, built one ahead | 55–164 GB | **36–109 min** | 7–22 min |
 
-- **Average load:** 3–9 Mbps per validator per node (1.5–4.4 with duty-indexed proposal keys).
-- **Capacity:** using half of a 200 Mbps link, a node supports **11–34 validators** (22–67 with duty-indexed proposal
-  keys). At 2048 ETH each, that's roughly 22k–137k ETH per cluster. Five times more on 1 Gbps.
-- **Latency doesn't matter.** Every chain is independent, so the whole computation is only a few thousand rounds deep.
-  Each window is built one ahead, so a failed job simply retries within the 3 days.
-- **Storage:** about 1.5 GB per validator per node:
-  - top-layer secret shares, kept for life (~0.3 GB);
-  - two windows of signing tables (~1.2 GB).
+- **How often a bottom tree is needed** depends on duty cadence and on leaf allocation. With one leaf per signature:
+  - today's chain (attest once per epoch): every ~5 months, about 0.1 Mbps;
+  - per-slot attesting at 4 s: every 3 days, 1.7–5 Mbps, or 20–60 validators per node on half a 200 Mbps link.
+
+  A fixed schedule of 8 leaves per slot would multiply these by 8 to 128.
+- **The top range.** Top keys that will never certify a tree can be random filler. 2¹² real ones last ≥ 34 years at
+  4 s slots, at 1/16 of the cost.
+- **Latency doesn't matter.** Keccak has AND-depth 24, so a whole tree is about 72 MPC rounds deep.
+- **Storage:** about 0.4–0.55 GB per validator per node:
+  - top-layer secret shares, kept for life (11–182 MB);
+  - two bottom trees' signing tables (365 MB).
 - **Operator changes:** reshare the top-layer shares (a standard Shamir reshare), and the new operator set builds the
-  next window. Same validator, same public key.
+  next bottom tree. Same validator, same registered key.
 
 Model and assumptions: [`docs/dkg-and-mpc-costs.md`](docs/dkg-and-mpc-costs.md).
 
@@ -129,84 +138,87 @@ Model and assumptions: [`docs/dkg-and-mpc-costs.md`](docs/dkg-and-mpc-costs.md).
 | stage | what happens | resources (per validator, per node) |
 |---|---|---|
 | Cluster formation | agree config, threshold, operators | as today |
-| Key generation | MPC builds the top layer and the first window | 1.6–4.9 h at 200 Mbps |
-| Every slot | QBFT → threshold randomness on commits → PRF shares → combine → publish | ~1.5 KiB, milliseconds |
-| Every ~3 days | MPC builds the next window; the top key certifies it | 1–3 h at 200 Mbps; ~950 B on-chain |
-| Operator change | reshare the top layer; the new set builds the next window | minutes; same validator |
-| Always | never-sign-twice records for slots and windows; ~1.5 GB key material | |
+| Registration (EIP-8450 fork) | MPC builds the top layer, signs a proof of possession; the cluster BLS-signs the registration once | 2–7 min at 200 Mbps |
+| Dormant period | keys registered, BLS still signs duties; reshare on operator changes | none |
+| Switch fork | MPC builds the first bottom tree; the top key certifies it | 36–109 min at 200 Mbps |
+| Every signature | QBFT → threshold randomness on commits → grind → PRF shares → combine → publish | ~1–2 KiB, ~0.1 s CPU |
+| Each new bottom tree | built in the background one tree ahead | 36–109 min at 200 Mbps |
+| Always | never-sign-twice records for leaves and certifications; ≤ 0.55 GB key material | |
 
-## 7. What we ask of lean Ethereum
+## 7. What we ask of Ethereum
+
+EIP-8450 settled our earlier top asks: two-layer keys, threshold-friendly randomness, one key for all duties, and
+replacement without exit. What remains:
 
 | | ask | why it matters |
 |---|---|---|
-| 1 | **Two-layer validator keys, certifying each window once** | smaller signatures and cheaper aggregation; key generation in minutes for every validator; a cold long-lived key; and the background key generation DVs need |
-| 2 | **Bless threshold-derived signing randomness** (ρ = threshold-PRF(key, message) + i) | a one-line spec note; verifiers can't see the difference, but the spec and proofs should cover it |
-| 3 | **Keep staking in groups a design goal** | every other choice stays compatible by default |
-| 4 | index proposal keys by proposal duty, not slot | about halves DV key generation |
-| 5 | higher maximum balance (2¹⁷–2²⁰ ETH) | fewer keys per ETH, so less key generation per ETH |
+| 1 | **Recommend dense leaf allocation**, and keep the switch fork allocation-agnostic | every bottom tree is an MPC for a DV; fixed per-slot schedules cost up to 128× more |
+| 2 | **State the bottom-tree rule as an outcome**: a top key never certifies two roots | threshold signers have no seed to derive trees from |
+| 3 | **Key-authorized replacement**: a registered key signs its successor | rotation for validators whose withdrawal contract can't make the owner-path request |
+| 4 | **A threshold profile for EIP-8310 keystores** | shares, tables and certification records instead of a seed |
+| 5 | weigh grinding (2²⁰ trials per signature) against verification | it sits after consensus for threshold signers |
+| 6 | higher maximum balance (2¹⁷–2²⁰ ETH) | fewer keys per ETH, so less key generation per ETH |
 
 Why two-layer keys make staking more secure:
 - **No forced single point of failure.** Without a threshold-friendly key structure, every post-quantum validator key
   would have to live whole on one machine. One compromise could make it slashable, and one outage takes it offline.
-  Two-layer keys let a cluster generate and use keys that no single machine ever holds.
-- **A cold root for everyone.** Even a solo validator signs with the long-lived top key only once per ~3 days. It can
-  stay offline, and a hot-machine compromise exposes only the windows that machine holds (about 6 days), not the
-  validator's whole life.
-- **One new rule to enforce.** Each top-layer key certifies exactly one window. That's one more record in slashing
-  protection.
+- **A cold root for everyone.** The long-lived top key signs once per bottom tree, so it can stay offline. A hot-machine
+  compromise exposes only the trees that machine holds.
 
-Ranked detail, alternatives and history: [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisions.md).
+Ranked detail: [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisions.md). Draft feedback for the EIP
+thread: [`docs/eip-8450.md`](docs/eip-8450.md#6-feedback-to-post).
 
 ## 8. Roadmap
 
 ![Roadmap](docs/fig/roadmap.svg)
 
-The critical path:
-1. **Agree on two-layer keys** and threshold randomness with the leanSig / leanSpec teams.
-2. **Prove it:** a threshold two-layer XMSS security proof (PRAWNS covers the one-time layer).
-3. **Prototype:** a dealer-based prototype in charon on a lean devnet.
-4. **Build:** a per-window Boolean MPC key generation for BLAKE2s, chunked and resumable.
-5. **Ship:** audit and hardening, ahead of the post-quantum chain.
-
-Running alongside: top-layer resharing for operator changes, robustness (identify and evict a faulty node), and
-formal proofs in Lean extending the existing XMSS proofs.
+The critical path, registration first:
+1. **charon: BLS-authorized registration.** Sign `PQKeyRegistration` once per validator and broadcast it. Test with
+   dealer keys on devnets.
+2. **Top-layer MPC key generation:** Keccak-f in 3–4-party Boolean MPC, the 2¹² top range, and the proof of
+   possession signed in MPC.
+3. **Owner path:** PQ key authorization in withdrawal contracts.
+4. **Top-layer resharing** across the dormant period.
+5. **Then, as the switch fork takes shape:** bottom-tree MPC, PRAWNS signing, the leaf allocator, and a threshold
+   two-layer security proof. Audit and hardening.
 
 ## 9. Open questions
 
-- **Final leanSig parameters:** the hash and the chain counts. Cost scales with chain steps per slot, and with
-  BLAKE-family hashes in Boolean MPC.
-- **The certificate's home:** on-chain per window, or inside a periodic proof such as daily balance or key-registration
-  proofs[^elc], which would also keep windows unlinkable.
-- **Real-network MPC throughput:** bytes per AND gate for a production 3–4-party protocol. Our range assumes 1–3 bits.
-- **Ceremony UX:** progress, checkpointing and failure handling for the first, hours-long key generation.
+- **The switch fork's duty cadence:** once per epoch or every slot. It sets the DV's MPC rate by about 16×.
+- **Final parameters:** EIP-8450 is a Draft following an unmerged leanVM branch. Build the MPC parametric in the hash.
+- **Real-network MPC throughput:** bits per AND gate for a production 3–4-party protocol. Our range assumes 1–3 bits.
+- **Ceremony UX:** progress, checkpointing and failure handling, and one-shot registration signing.
 
 ## 10. Verdict
 
 - **Signing: ready.** Non-interactive, cheap, standard output.
-- **Keys: viable and simple** with two-layer keys: a one-off MPC of a few hours, then a light background job per
-  window. No single machine ever holds a key, and operator changes keep the validator.
-- **Distributed validators in post-quantum Ethereum are a *when*, not an *if*.** The remaining steps are known
-  engineering, a proof, and a spec change that benefits every staker.
+- **Keys: viable and simple** on EIP-8450's two-layer keys: minutes to register, then a background job per bottom tree.
+  No single machine ever holds a key, and operator changes keep the validator.
+- **Distributed validators in post-quantum Ethereum are a *when*, not an *if*.** The key structure is in the EIP; the
+  remaining steps are known engineering, a proof, and a few clarifications that help every staker.
 
 ## Further reading
 
 | | |
 |---|---|
-| [`docs/two-layer-keys.md`](docs/two-layer-keys.md) | the two-layer design: options, sizes, security rules, prior art |
+| [`docs/eip-8450.md`](docs/eip-8450.md) | EIP-8450 read for DVs: issues, opportunities, what to build now, feedback to post |
+| [`docs/two-layer-keys.md`](docs/two-layer-keys.md) | the two-layer design: options, sizes, security rules, DV design, prior art |
 | [`docs/prawns.md`](docs/prawns.md) | PRAWNS construction, threshold condition, randomness, why key generation needs MPC |
-| [`docs/dkg-and-mpc-costs.md`](docs/dkg-and-mpc-costs.md) | cost model: per-hash MPC costs, key generation, storage, single-layer fallback |
+| [`docs/dkg-and-mpc-costs.md`](docs/dkg-and-mpc-costs.md) | cost model: per-hash MPC costs, key generation, storage, earlier BLAKE2s and Poseidon estimates |
 | [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisions.md) | ranked asks, maximum balance, equivocation rules, The Extremely Lean Chain |
 | [`docs/alternatives.md`](docs/alternatives.md) | helpers that may only cost liveness, TEE, FHE, Stoffel MPC, Flock |
-| [`docs/leansig.md`](docs/leansig.md) | leanSig parameter sets, key generation structure, slot usage |
-| [`tools/`](tools/) | `cost_model.py --primary` (this page's numbers), `--blake`, `kk_leak.py`, `kk_multitarget.py`, `figs.py` |
+| [`docs/leansig.md`](docs/leansig.md) | leanXMSS and earlier leanSig parameter sets, key generation structure, slot usage |
+| [`tools/`](tools/) | `cost_model.py --primary` (this page's numbers), `--option-b`, `--blake`, `kk_leak.py`, `kk_multitarget.py`, `figs.py` |
 | [`doc/`](doc/), [`mpspdz/`](mpspdz/) | prior work (2025): *Towards Threshold Hash-Based Signatures for Post-Quantum Distributed Validators*, with MP-SPDZ benchmarks that calibrate our MPC costs |
 
 ## References
 
 [^prawns]: Boneh, Bünz, Justin D., Litchev, Nazirkhanova. *PRAWNS: Threshold Hash-Based Signatures from Threshold PRFs*. IACR ePrint 2026/2142. <https://eprint.iacr.org/2026/2142>
 [^kk]: Kondi, Kumar. *A Black-Box Impossibility Result for Threshold Signing Standard Hash-Based Signatures*. IACR ePrint 2026/2194. <https://eprint.iacr.org/2026/2194>
-[^elc]: *The Extremely Lean Chain*. ethresear.ch, July 2026. <https://ethresear.ch/t/the-extremely-lean-chain/25369>
 
-Also: *Flock: Fast Proving for Batch Boolean Computations*, ePrint 2026/1329 <https://eprint.iacr.org/2026/1329> ·
-leanSig <https://github.com/leanEthereum/leanSig> · leanSpec <https://github.com/leanEthereum/leanSpec> · leanVM
-<https://github.com/leanEthereum/leanVM> · HoneyBadgerMPC, ePrint 2019/883 <https://eprint.iacr.org/2019/883>
+Also: *EIP-8450: Post-Quantum Validator Key Registry* <https://eips.ethereum.org/EIPS/eip-8450> · *EIP-8310:
+Post-Quantum Keystore for Stateful Keys* <https://eips.ethereum.org/EIPS/eip-8310> · *The Extremely Lean Chain*,
+ethresear.ch, July 2026 <https://ethresear.ch/t/the-extremely-lean-chain/25369> · *Flock: Fast Proving for Batch
+Boolean Computations*, ePrint 2026/1329 <https://eprint.iacr.org/2026/1329> · leanVM (leanXMSS)
+<https://github.com/leanEthereum/leanVM> · leanSig <https://github.com/leanEthereum/leanSig> · leanSpec
+<https://github.com/leanEthereum/leanSpec> · HoneyBadgerMPC, ePrint 2019/883 <https://eprint.iacr.org/2019/883>

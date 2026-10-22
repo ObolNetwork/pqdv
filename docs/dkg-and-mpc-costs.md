@@ -1,4 +1,4 @@
-# DKG and MPC cost model for threshold leanSig
+# DKG and MPC cost model for threshold leanXMSS
 
 Everything here is reproducible with `python3 tools/cost_model.py`. Every input is either sourced (leanSig/leanSpec
 code, this repo's 2025 benchmarks) or a labelled assumption. Treat the outputs as **order-of-magnitude** estimates:
@@ -9,18 +9,19 @@ there's no implementation of the DKG described here yet.
 | Work | Secret? | Where it runs |
 |---|---|---|
 | chain starts (PRF outputs) | yes | **locally**, with `F_hash`: each node computes its own PRF terms, giving additive shares for free |
-| 7 chain steps on each of 46 chains, per slot per key | yes (every intermediate value is a future signature value) | **MPC**: the dominant cost |
+| 3 chain steps on each of 58 chains, per one-time key (EIP-8450) | yes (every intermediate value is a future signature value) | **MPC**: the dominant cost |
 | masks for the public table (`cpk`) | yes | locally (same as chain starts), then *open* masked values |
 | chain tops, one-time public key (leaf) hash, Merkle tree | no (public by design) | **in the clear**, after opening the tops |
 | per-slot signing (PRAWNS) | PRF shares | locally: no hashing of secrets at all |
 
-So the DKG is 46 × 7 = **322 hash calls on secret data per slot per key** (leanSig devnet parameters), × 2 keys per
-validator, × the number of slots the key covers. Kondi–Kumar show this can't be avoided by hashing in the clear
+So the DKG is 58 × 3 = **174 Keccak-f on secret data per one-time key** (EIP-8450), × the one-time keys generated:
+the top range at registration, then one bottom tree of 2¹⁶ at a time. Earlier parameter sets needed 294 (BLAKE2s
+draft) or 322 (Poseidon devnets), with two keys per validator. Kondi–Kumar show this can't be avoided by hashing in the clear
 (see [`prawns.md`](prawns.md) §5).
 
 **Latency vs bandwidth.** Chains for different slots and different chains are independent, so a well-built DKG runs
-them all in parallel. It needs only 7 × (depth of one hash) rounds: **196–392 rounds for Poseidon**, seconds of
-latency. The 2025 benchmarks in [`../doc/`](../doc/) ran keys sequentially and were latency-bound (4–12 days
+them all in parallel. It needs only (steps per chain) × (depth of one hash) rounds: **72 for EIP-8450's Keccak**,
+196–392 for Poseidon. That's seconds of latency. The 2025 benchmarks in [`../doc/`](../doc/) ran keys sequentially and were latency-bound (4–12 days
 extrapolated); that's an implementation artifact, not the floor. The real floor is **bandwidth**: total
 multiplications × bytes per multiplication per node.
 
@@ -34,40 +35,53 @@ multiplications × bytes per multiplication per node.
   two 2-operand 32-bit additions; XORs and rotations are free in Boolean MPC. Two adder designs:
   - ripple-carry (31 ANDs, depth 31) with a carry-save layer: **20,160 ANDs, depth 2,520**;
   - parallel-prefix: **~87k ANDs, depth ~520**.
-- **Keccak-f[1600]** (SHAKE128, leanSig devnets' PRF for chain starts and ρ): 1,600 ANDs per round × 24 rounds,
-  depth 24.
+- **Keccak-f[1600]** (EIP-8450's hash; also SHAKE128, the devnets' PRF for chain starts and ρ): χ has one AND per
+  state bit per round, so 1,600 × 24 = **38,400 ANDs, depth 24**. EIP-8450 hashes every chain step with one
+  permutation: 58 chains × 3 steps = **174 permutations per one-time key**.
 - **Bytes per multiplication per node, including preprocessing** (assumptions):
   - ~4 B: best 3–4-party protocols (replicated sharing, "Fantastic Four"-style, about one field element per mult);
   - 13 B: semi-honest Shamir, measured (ATLAS in this repo's 2025 MP-SPDZ benchmarks, 5 parties);
   - 31 B: malicious Shamir, measured (same benchmarks).
 - **Bits per AND per node:** 1–3 for 3–4-party replicated Boolean MPC (semi-honest to malicious); 8–24 when Shamir
   over GF(2⁸) is needed (larger committees).
-- **Slots:** 4 s; 7,889,400 per year; 2 keys per validator.
+- **Slots:** 12 s today, 4 s on lean devnets. EIP-8450 has one key per validator; earlier sections assumed two.
 
-## 3. Results: two-layer keys (the primary scenario)
+## 3. Results: EIP-8450 leanXMSS (the primary scenario)
 
-With [two-layer keys](two-layer-keys.md) and window certificates, a DV runs one MPC at setup (top layer + first
-window) and then one per ~3-day window, each built a window ahead. Per validator, per node, BLAKE2s, 3–4-party
-Boolean MPC at 1–3 bits per AND gate:
+[EIP-8450](eip-8450.md) registers one two-layer leanXMSS key per validator over Keccak-256. A DV runs one MPC at
+registration (the top layer and the proof of possession) and, once duties switch, one per bottom tree, built a tree
+ahead. Per validator, per node, 3–4-party Boolean MPC at 1–3 bits per AND gate:
 
+One-time key: 58 chains x 3 steps = 174 Keccak-f on secret data = 6.68M ANDs (AND-depth 24 per step, 72 per key). Chain starts and masks are local PRF terms; leaves and Merkle nodes are hashed in the clear.
 
-| step | MPC traffic | at 200 Mbps | at 1 Gbps |
-|---|---|---|---|
-| Up front: top tree + first bottom trees (attestation + proposal) | 146 GB–437 GB | 97 min–4.9 h | 19 min–58 min |
-| Every ~3 days: next bottom trees (attestation + proposal) | 97 GB–291 GB | 65 min–3.2 h | 13 min–39 min |
-| Every ~3 days, proposal key indexed by duty (≈ one bottom tree) | 49 GB–146 GB | 32 min–97 min | 6 min–19 min |
+| step | one-time keys in MPC | MPC traffic | at 200 Mbps | at 1 Gbps |
+|---|---|---|---|---|
+| Registration: top range (2^12 top keys) + proof of possession | 4,097 | 3.4 GB–10 GB | 2 min–7 min | 27 s–82 s |
+| Registration: full top tree (2^16 top keys) + proof of possession | 65,537 | 55 GB–164 GB | 36 min–109 min | 7 min–22 min |
+| Each bottom tree (2^16 leaves), one tree ahead | 65,536 | 55 GB–164 GB | 36 min–109 min | 7 min–22 min |
 
-Average, spread across the window: 3.0–8.9 Mbps per validator per node (1.5–4.4 with duty-indexed proposal keys).
-Validators per node using half of a 200 Mbps link: 11–34 (22–67 with duty-indexed proposal keys).
-Validators per node using half of a 1 Gbps link: 56–169 (112–337 with duty-indexed proposal keys).
+#### How often a bottom tree is needed: it depends on leaf allocation
 
-Storage per validator per node: top-layer secret shares 0.31 GB (for life) + bottom-layer public tables for two windows, two keys 1.23 GB ≈ 1.5 GB.
-Per-slot signature 952 B (~128 compressions); once-per-window certificate ~950 B. Today: 1,208 B (~144).
+| duty cadence and allocation | leaves used per slot | one bottom tree lasts | average MPC load per validator | validators per node on half of 200 Mbps |
+|---|---|---|---|---|
+| today's chain (attest once per epoch, 12 s), dense: one leaf per attestation + ~1 other | 0.0625 | 145.6 d | 0.035–0.1 Mbps | 958–2,874 |
+| per-slot attesting at 12 s, dense | 1 | 9.1 d | 0.56–1.7 Mbps | 60–180 |
+| per-slot attesting at 4 s (lean), dense | 1 | 3.0 d | 1.7–5 Mbps | 20–60 |
+| fixed allocation, k = 8 leaves per slot, 12 s | 8 | 27.3 h | 4.5–13 Mbps | 7–22 |
+| fixed allocation, k = 8 leaves per slot, 4 s | 8 | 9.1 h | 13–40 Mbps | 2–7 |
 
-**Planning figure: 200 Mbps per node.** A commodity link handles the one-off in an afternoon and the per-window job
-in 1–3 hours. 1 Gbps makes both trivial.
+Storage per validator per node: top-layer shares 11 MB (2^12 range) or 182 MB (full top tree), for life; bottom-layer public tables 182 MB per tree, two held = 365 MB.
+Signature 2,404 B, 186 Keccak-f to verify. Grinding ~2^20 Keccak-f per signature: measured 0.44 s on 1 core, 0.12 s on 5 cores (Go crypto/sha3, arm64).
 
-## 4. Results: single-layer keys (fallback), BLAKE2s
+- **Planning figure: 200 Mbps per node.** Registration takes minutes per validator. A bottom tree takes 36–109 minutes,
+  needed every 3 days at the most demanding cadence considered (per-slot attesting at 4 s).
+- **Compared with our earlier BLAKE2s estimate** (two keys, certified windows):
+  - per-tree MPC is within about 13% (174 × 38,400 ANDs against 294 × 20,160);
+  - one key instead of two halves the total;
+  - the top range cuts registration 16×;
+  - AND-depth falls from 2,520 to 24 per hash.
+
+## 4. Earlier results: single-layer keys, BLAKE2s (superseded)
 
 Ethereum's direction is a classic hash proven with fast batch provers (e.g. Flock), so key generation becomes a
 **Boolean** MPC over BLAKE2s (draft leanSig set B: 42 chains × 7 steps, 128-bit values).
@@ -113,7 +127,7 @@ Re-deriving a lost 2^16-slot window (~3 days) of the public table by MPC: 97 GB�
 - **Losing the table costs liveness only.** It can be rebuilt by rerunning the MPC from any t nodes' PRF key
   shares, and the result is checked against the commitment from key generation.
 
-## 5. Results: Poseidon (if Ethereum kept a zk-friendly hash)
+## 5. Earlier results: Poseidon (superseded)
 
 ### Per hash call inside MPC (one chain step)
 
@@ -166,9 +180,10 @@ BLAKE2s DKG rounds: 3,640–17,640 (≈ 3–15 min at 50 ms RTT)
 
 ## 6. Reading the numbers
 
-- **Two-layer keys (expected route).** One-off 1.6–4.9 h at 200 Mbps, then 1.1–3.2 h per ~3-day window, ~1.5 GB of
-  storage (§3). Everything below applies only if keys stay single-layer.
-- **Single-layer BLAKE2s.** Per validator and node, a 12-month key is 12–35 TB, 26 h – 3.2 days at 1 Gbps, about 3–9 Mbps amortised (§3). The Poseidon bullets below are for comparison.
+- **EIP-8450 (the route Ethereum is taking).** Registration is 2–7 min at 200 Mbps with a 2¹² top range. Each bottom
+  tree is 36–109 min, from every 3 days to every few months depending on duty cadence and leaf allocation. Storage is
+  about 0.4–0.55 GB (§3). The bullets below describe single-layer keys, which no longer apply.
+- **Single-layer BLAKE2s.** Per validator and node, a 12-month key is 12–35 TB, 26 h – 3.2 days at 1 Gbps, about 3–9 Mbps amortised (§4). The Poseidon bullets below are for comparison.
 - **"Minutes, hours or untenable?"** It depends on the key range:
   - **the minimum key (2¹⁷ slots, about 6 days):** minutes;
   - **1-year key:** hours with a good protocol on fast links, days off the shelf;
@@ -204,18 +219,21 @@ consolidate, or stagger rotations across the year.
 
 ## 8. Levers, biggest first
 
-1. **Protocol: two-layer keys** ([two-layer-keys.md](two-layer-keys.md)), or failing that key rotation or extension. It doesn't reduce total work, but it spreads the DKG into rolling
-   per-window runs (about 6.2 × 10⁹ multiplications per key per ~3 days). That bounds lock-in, allows operator changes
-   at window boundaries, and removes the "pay for 5 years up front" problem.
-2. **Protocol: chain steps per slot.** Cost is linear in v·(2^w − 1), which is 322 for the devnet set and 294 for the
-   draft set. Larger w shortens signatures but raises it exponentially.
-3. **Protocol: the chain hash.** Poseidon-class is 2–10× cheaper in MPC than BLAKE2s at 3–4 parties. Ethereum is leaning towards BLAKE, so plan for BLAKE: keep the MPC committee at 3–4 nodes (replicated Boolean sharing), and avoid GF(2⁸) Shamir, which costs 8× more.
-4. **Protocol choice:**
+1. **Protocol: two-layer keys** ([two-layer-keys.md](two-layer-keys.md)), now in EIP-8450. They don't reduce total
+   work, but spread key generation into one MPC per bottom tree (4.4 × 10¹¹ ANDs). That bounds lock-in, allows operator
+   changes at tree boundaries, and removes the "pay for 5 years up front" problem.
+2. **Signer: dense leaf allocation.** One leaf per signature instead of a fixed per-slot schedule: up to 128× less MPC
+   ([EIP-8450 notes](eip-8450.md)).
+3. **Protocol: chain steps per one-time key.** Cost is linear in v·(2^w − 1): 174 for EIP-8450, 294 for the earlier
+   BLAKE2s draft, 322 for the devnet set. Larger w shortens signatures but raises it exponentially.
+4. **Protocol: the chain hash.** EIP-8450 picks Keccak-256. Keep the MPC committee at 3–4 nodes (replicated Boolean
+   sharing), and avoid GF(2⁸) Shamir, which costs 8× more.
+5. **Protocol choice:**
    - **3–4-party replicated sharing:** about 4 B per mult, versus 31 B for off-the-shelf malicious Shamir;
    - **pseudorandom correlation generators:** could make preprocessing nearly free.
    - Committees larger than 4 need care: the MPC committee must have an honest majority under the cluster's fault
      assumption. A `2f+1` subset works.
-5. **Trust: a dealer in a TEE.** Turns the DKG into CPU-hours on one machine (about 5.5 × 10⁹ Poseidon calls per
+6. **Trust: a dealer in a TEE.** Turns the DKG into CPU-hours on one machine (about 5.5 × 10⁹ Poseidon calls per
    validator-year, the same as single-signer key generation) plus share and table distribution. The cost is trust in
    the enclave and in erasure.
 
@@ -226,4 +244,5 @@ consolidate, or stagger rotations across the year.
 - **BLAKE2s AND counts** are our own circuit estimates (ripple vs prefix adders). Published circuits may differ by a
   small factor.
 - **`F_lat` DKG.** Rounding inside MPC is extra and not modelled.
-- **Parameters will move.** leanSig is still in flux: the hash, v and w (see [`leansig.md`](leansig.md)).
+- **Parameters can still move.** EIP-8450 is a Draft whose parameters follow an unmerged leanVM branch (see
+  [`leansig.md`](leansig.md)).
