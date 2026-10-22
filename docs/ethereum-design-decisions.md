@@ -9,12 +9,12 @@ classic hash, signer-chosen leaf indices and replacement without exit. What rema
 
 | # | Priority | Decision | Why it matters | Current state (Oct 2026) |
 |---|---|---|---|---|
-| 1 | **Ask** | **Recommend dense leaf allocation; keep the switch fork allocation-agnostic** | Every bottom tree is an MPC for a DV. Dense allocation (synchronized attestations, counter ranges for other duties) needs one tree per 2¹⁶ signatures; a fixed schedule of 8 leaves per slot costs up to **128×** more | EIP-8450 allows both, and gives fixed allocation with *k* = 8 as an example |
-| 2 | **Ask** | **State the bottom-tree rule as an outcome**: a top key never certifies two roots, and the signer records a certification before releasing signatures from the tree | Threshold signers have no seed to derive bottom trees from | EIP-8450: "MUST be derived deterministically from the seed" |
-| 3 | **Ask** | **Key-authorized replacement**: the registered key signs its successor at a reserved leaf | Post-quantum rotation for validators whose withdrawal contract can't make the owner-path request, plus operator changes and version migrations | replacement only through the withdrawal address |
-| 4 | **Ask** | **A threshold profile for EIP-8310 keystores** | Shares, public tables and certification records instead of a seed | EIP-8310 stores a seed |
-| 5 | Helps | **Weigh grinding against verification** when the duty cadence is fixed | 2²⁰ trials per signature (0.1–0.4 s CPU) sit after consensus for threshold signers, and add up with per-slot attesting | ~2²⁰ trials |
-| 6 | Helps | **Higher maximum effective balance** | Cost is per key, not per ETH: 2048 → 2¹⁷–2²⁰ ETH is 64–512× fewer keys | 2048 ETH |
+| 1 | **Top ask** | **A much higher maximum effective balance: 2048 → 2¹⁷–2²⁰ ETH** | Every post-quantum cost is per key, not per ETH: registrations, registry state, 2.4 KB signatures to aggregate, grinding, and for DVs the MPC. Consolidated stake needs 64–512× fewer keys | 2048 ETH |
+| 2 | **Ask** | **Recommend dense leaf allocation; keep the switch fork allocation-agnostic** | Every bottom tree is an MPC for a DV. Dense allocation (synchronized attestations, counter ranges for other duties) needs one tree per 2¹⁶ signatures; a fixed schedule of 8 leaves per slot costs up to **128×** more | EIP-8450 allows both, and gives fixed allocation with *k* = 8 as an example |
+| 3 | **Ask** | **State the bottom-tree rule as an outcome**: a top key never certifies two roots, and the signer records a certification before releasing signatures from the tree | Threshold signers have no seed to derive bottom trees from | EIP-8450: "MUST be derived deterministically from the seed" |
+| 4 | **Ask** | **Key-authorized replacement**: the registered key signs its successor at a reserved leaf | Post-quantum rotation for validators whose withdrawal contract can't make the owner-path request, plus operator changes and version migrations | replacement only through the withdrawal address |
+| 5 | **Ask** | **A threshold profile for EIP-8310 keystores** | Shares, public tables and certification records instead of a seed | EIP-8310 stores a seed |
+| 6 | Helps | **Weigh grinding against verification** when the duty cadence is fixed | 2²⁰ trials per signature (0.1–0.4 s CPU) sit after consensus for threshold signers, and add up with per-slot attesting | ~2²⁰ trials |
 | 7 | Principle | **Keep staking in groups an explicit design goal** | Keeps every other choice compatible by default | DVs named in EIP-8450's rationale; leanXMSS sketches a threshold signer |
 | — | ✅ settled | Two-layer keys (2¹⁶ × 2¹⁶) | Bounds every MPC to 2¹⁶ one-time keys | EIP-8450 |
 | — | ✅ settled | Threshold-derived randomness, ρ = threshold-PRF(key, message) + i | Grinding becomes public; shares ride on QBFT commits | leanXMSS threshold sketch; "not consensus-critical" |
@@ -31,11 +31,29 @@ certified options, safety rules, the DV design, costs and prior art. The DV read
 
 ## Higher maximum balance
 
-The reason given for stopping at 2048 ETH was sync committee selection. In a zk-verified chain that matters less, and
-the EF is working on decoupled consensus. For DVs:
-- **Per-ETH key generation cost becomes negligible.** At 2²⁰ ETH, a whole operator might run a handful of keys.
-- **The value behind each key grows enormously.** That makes black-box or TEE shortcuts even less acceptable, and
-  makes each key generation's liveness (completing before the rotation deadline) more important.
+Post-quantum signatures make every validator key expensive, for everyone. Under EIP-8450, each key costs:
+
+| cost | per key | at a million keys |
+|---|---|---|
+| Registration on-chain | 2,541 B, capped at 8 per block | ~17 days of full blocks |
+| Registry state | 33 B | 33 MB |
+| Each signature to aggregate | 2,404 B, 186 Keccak-f to prove | 2.4 GB of signatures per attestation round |
+| Signing | ~2²⁰ Keccak-f of grinding | |
+| DV key generation | 55–164 GB of MPC per bottom tree, per node | |
+
+None of these depend on stake. Raising the cap from 2048 ETH to 2¹⁷–2²⁰ ETH (131,072–1,048,576) lets consolidated stake
+run on **64–512× fewer keys**.
+- **For DVs:** a cluster that runs sixteen 2048-ETH keys today could run one, cutting its MPC sixteen-fold. Registration
+  becomes one ceremony per operator, not per 2048 ETH.
+- **For Ethereum:** fewer signatures per slot to aggregate is the most direct lever on proving cost, independent of any
+  signature-scheme tuning.
+
+**The trade-offs:**
+- **More value behind each key.** That makes custody matter more. It's an argument for threshold keys and cold top
+  layers, and against black-box or TEE shortcuts.
+- **Consolidation is voluntary.** The saving depends on operators consolidating; small stakers are unaffected.
+- **Per-key penalties grow with balance.** Slashing and correlation penalties scale with balance, which may slow
+  institutional uptake.
 
 ## Would "equivocation requires both payloads valid" remove the framing risk?
 
