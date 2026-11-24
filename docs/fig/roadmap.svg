@@ -22,29 +22,29 @@
 <line x1="1070.0" y1="58.0" x2="1070.0" y2="506.0" stroke="#ecebe8" stroke-width="1"/>
 <text x="1070.0" y="522.0" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="normal">24 mo</text>
 <text x="16.0" y="81.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">ETHEREUM (external, dates unknown)</text>
-<text x="16.0" y="107.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">EIP-8450 registry fork (after Heze)</text>
+<text x="16.0" y="107.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">registry fork: EIP-8450 or EIP-8483</text>
 <rect x="331.0" y="94.0" width="738.0" height="18.0" rx="3" fill="#b9b8b2" fill-opacity="0.6"/>
 <text x="700.0" y="107.2" font-size="10" fill="#0b0b0b" text-anchor="middle" font-weight="normal">Draft → devnets → mainnet; dormant keys</text>
 <text x="16.0" y="133.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">switch fork: duties move to PQ keys</text>
 <rect x="701.0" y="120.0" width="368.0" height="18.0" rx="3" fill="#b9b8b2" fill-opacity="0.6"/>
 <text x="885.0" y="133.2" font-size="10" fill="#0b0b0b" text-anchor="middle" font-weight="normal">duty set, cadence, aggregation</text>
 <text x="16.0" y="159.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">SPEC INPUT</text>
-<text x="16.0" y="185.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">asks: dense allocation, outcome rule, replacement</text>
+<text x="16.0" y="185.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">asks: dense allocation, VRF tree, replacement</text>
 <rect x="331.0" y="172.0" width="183.0" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
-<text x="422.5" y="185.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">EIP-8450 thread</text>
+<text x="422.5" y="185.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">EIP threads, pq branch</text>
 <text x="16.0" y="211.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">threshold profile for EIP-8310 keystores</text>
 <rect x="361.8" y="198.0" width="152.2" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>
 <text x="437.9" y="211.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">with client teams</text>
 <text x="16.0" y="237.7" font-size="11.5" fill="#0b0b0b" text-anchor="start" font-weight="bold">BUILD: REGISTRATION</text>
-<text x="16.0" y="263.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">charon: BLS-authorized registration</text>
+<text x="16.0" y="263.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">charon: registration (BLS or owner hand-off)</text>
 <rect x="331.0" y="250.0" width="90.5" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
-<text x="426.5" y="263.2" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">one-shot; dealer keys on devnets</text>
+<text x="426.5" y="263.2" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">dealer keys on devnets</text>
 <text x="16.0" y="289.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">top-layer Keccak MPC + proof of possession</text>
 <rect x="361.8" y="276.0" width="213.8" height="18.0" rx="3" fill="#eb6834" fill-opacity="1.0"/>
 <text x="468.8" y="289.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">2^12 range; PRSS/DN07</text>
-<text x="16.0" y="315.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">owner path in withdrawal contracts</text>
-<rect x="423.5" y="302.0" width="152.2" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>
-<text x="499.6" y="315.2" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="normal">PQ key authorization</text>
+<text x="16.0" y="315.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">VRF tree</text>
+<rect x="392.7" y="302.0" width="183.0" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>
+<text x="580.7" y="315.2" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">shared seed first, then MPC</text>
 <text x="16.0" y="341.2" font-size="11" fill="#52514e" text-anchor="start" font-weight="normal">top-layer resharing</text>
 <rect x="516.0" y="328.0" width="183.0" height="18.0" rx="3" fill="#2a78d6" fill-opacity="1.0"/>
 <text x="704.0" y="341.2" font-size="10" fill="#52514e" text-anchor="start" font-weight="normal">operator changes while dormant</text>

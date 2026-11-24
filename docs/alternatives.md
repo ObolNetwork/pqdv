@@ -90,3 +90,28 @@ aggregation can prove classic hashes efficiently. That pushes our key generation
 **What it doesn't do.** Proving isn't hiding, so it doesn't make hashing secrets in MPC or FHE cheaper. Its one
 plausible use for us is making an evaluator's *public* outputs checkable. That can't remove the safety problem of a
 helper that sees the secrets.
+
+## 6. Project Eleven: Strongpoint MPC and SPHINCS-G (announced, not yet public)
+
+**What's claimed.** These are Project Eleven's own claims, from dated posts; we haven't seen code or a paper.
+- *[Introducing Strongpoint MPC](https://research.projecteleven.com/articles/introducing-strongpoint-mpc)*
+  (12 November 2026):
+  - dealerless threshold signing for hash-based signatures, starting with leanSPHINCS and leanXMSS;
+  - a full threshold signature in under a second, depending on the setup;
+  - it ships inside their Strongpoint custody product, with papers to follow.
+- *[SPHINCS-G benchmarks](https://research.projecteleven.com/articles/sphincs-g-benchmarks)* (16 November 2026):
+  - SPHINCS-G is their SPHINCS+ signing variant, with WOTS+C and 16-byte hashes;
+  - a **2-of-3** benchmark across three servers, about 1 ms apart, signs in 0.53–0.81 s;
+  - the paper is still to come.
+
+**Status, 24 November 2026.** There's no repository, package or paper. Their GitHub organization (`p-11`) has no MPC or
+SPHINCS-G code.
+
+**Why it matters to us.** Dealerless threshold leanXMSS is exactly our problem, and theirs is the first announced
+implementation.
+- **What to compare** once it's public:
+  - whether they sign by MPC per signature or precompute like PRAWNS;
+  - what their key generation costs per bottom tree;
+  - how they handle leaf state and resharing;
+  - whether their threshold scheme generalizes past 2-of-3.
+- **Licensing.** It is a commercial custody product, so the licence matters as much as the cryptography.

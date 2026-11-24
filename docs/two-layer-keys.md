@@ -118,8 +118,9 @@ How often a bottom tree is needed with dense allocation:
 
 ## 7. Prior art
 
-- **leanXMSS** (leanVM `doc/lean_xmss`): the scheme EIP-8450 registers, with a Lean 4 proof of 127-bit classical
-  security and a threshold-signing sketch after PRAWNS.
+- **leanXMSS** (leanVM `doc/lean_xmss`; EIP-8450 now pins EthLib's Lean implementation): the scheme EIP-8450
+  registers, with a Lean 4 proof of 127-bit classical security. The leanVM write-up adds a threshold-signing sketch
+  after PRAWNS.
 - **leanSig split its tree only to save memory:** "we first generate all bottom trees and store their roots, then we
   generate the top tree just from their roots" (`leanSig/src/signature/generalized_xmss.rs`). In leanXMSS, the top
   tree's leaves are one-time keys that *sign* bottom roots.

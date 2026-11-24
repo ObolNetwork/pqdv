@@ -5,8 +5,9 @@ October 2026. Paths are relative to each repository.
 
 ## The registered scheme: leanXMSS (EIP-8450)
 
-[EIP-8450](eip-8450.md) (Draft, October 2026) registers one leanXMSS key per validator, as specified in leanVM
-`doc/lean_xmss` on its Keccak branch:
+[EIP-8450](eip-8450.md) (Draft, October 2026) registers one leanXMSS key per validator. The October draft followed
+leanVM `doc/lean_xmss` on its Keccak branch. The current draft pins EthLib's Lean implementation
+(`EthLib/Cryptography/Xmss` at `6390c73`) with the same parameters:
 
 | | leanXMSS (EIP-8450) |
 |---|---|
