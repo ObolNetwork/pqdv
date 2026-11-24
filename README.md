@@ -2,7 +2,9 @@
 
 **Distributed validators carry over to post-quantum Ethereum.** This repo shows how: how a cluster signs, how it
 makes keys without anyone ever holding them, what it costs, and the protocol choices that make it smooth. Ethereum's
-post-quantum key registry, [EIP-8450](docs/eip-8450.md), has now adopted the key structure this depends on.
+post-quantum key registry, [EIP-8450](docs/eip-8450.md), has now adopted the key structure this depends on. A second
+design, [EIP-8483 and the consensus-specs `pq` emergency fork](docs/pq-fork.md), uses the same keys but allocates leaves
+in a way that costs DVs far more.
 
 ## TL;DR
 
@@ -10,8 +12,13 @@ post-quantum key registry, [EIP-8450](docs/eip-8450.md), has now adopted the key
   computation (MPC) and no hashing of secrets at signing time. The combined output is a **standard signature**, so
   aggregation and verification are unchanged.
 - **Ethereum's key is DV-ready.** EIP-8450 registers one **two-layer leanXMSS key** per validator: a long-lived top
-  key certifies a fresh bottom tree of 65,536 one-time keys whenever one is needed. The leanXMSS specification sketches
-  the same threshold signer we propose.
+  key certifies a fresh bottom tree of 65,536 one-time keys whenever one is needed. leanVM's leanXMSS write-up
+  sketched the same threshold signer we propose.
+- **New: a VRF root per validator.** In EIP-8450 it replaces BLS selection proofs; in the `pq` branch it gives RANDAO
+  reveals instead, and there are no selection proofs. Every leaf hashes a secret,
+  so a threshold-built tree is MPC per leaf. Its size isn't fixed yet; the `pq` branch's one-leaf-per-slot tree would
+  cost 0.6–3.9 TB per validator per node for 51 years of leaves. If the operators share the VRF seed, there's no MPC,
+  but any one operator can predict the openings.
 - **Keys are made jointly, in the background.** A cluster generates keys by MPC, so no machine ever holds a full key.
   Per validator, per node, at 200 Mbps:
   - **register a key:** 2–7 minutes;
@@ -19,16 +26,19 @@ post-quantum key registry, [EIP-8450](docs/eip-8450.md), has now adopted the key
     every 3 days if attestations move to every 4-second slot;
   - **stored:** about 0.4–0.55 GB.
 
-  No key lifetime to pick, and operator changes keep the same registered key.
+  No key lifetime to pick, and operator changes keep the same registered key. This assumes dense leaf allocation. The
+  `pq` branch's fixed 8 leaves per slot needs a tree every 27 hours, about 100× the MPC.
 - **What we still ask of Ethereum:**
   1. **a much higher maximum balance (2¹⁷–2²⁰ ETH):** every post-quantum cost is per key, so this means 64–512× fewer
      keys;
-  2. recommend dense leaf allocation (fixed per-slot schedules cost DVs up to 128× more);
-  3. state the bottom-tree rule as an outcome, not "derived from a seed";
-  4. let a registered key authorize its own replacement;
-  5. a threshold profile for post-quantum keystores.
-- **Status:** the cryptography exists, the costs are known, and the registry lets DV keys go on-chain long before they
-  sign anything. The [roadmap](#8-roadmap) starts with registration.
+  2. **dense leaf allocation:** fixed per-slot schedules, as in the `pq` branch, cost DVs ~100× more;
+  3. **a VRF tree sized for threshold signers,** or a VRF root that can be renewed;
+  4. let a registered key authorize its own replacement once BLS-authorized changes stop;
+  5. state the bottom-tree rule as an outcome, not "derived from a seed";
+  6. a threshold profile for post-quantum keystores (separate PQ mnemonics are expected in the derivation ERC).
+- **Status:** the cryptography exists, the costs are known, and a registry lets DV keys go on-chain long before they
+  sign anything. Which registry ships is open: EIP-8450 (BLS-authorized) or EIP-8483 (withdrawal address; the `pq`
+  branch exits validators that didn't register). The [roadmap](#8-roadmap) starts with registration.
 
 ---
 
@@ -51,8 +61,11 @@ pairing-based aggregation.
 | Aggregation | add signatures | a zk proof that many standard signatures verify |
 | Threshold signing | algebra | needs a new idea: **PRAWNS** |
 | Distributed key generation | seconds | hashing secrets inside MPC: needs a key structure that allows background generation |
+| Selection proofs, RANDAO | BLS signatures (unique) | a registered VRF tree: one secret per index, opened with its Merkle branch |
 
 EIP-8450 registers these keys in one fork while BLS still signs every duty. A later fork switches duties to them.
+EIP-8483 does the same through the withdrawal address, and the consensus-specs `pq` branch drafts a switch on top of it
+([`docs/pq-fork.md`](docs/pq-fork.md)).
 
 ## 3. How a DV signs
 
@@ -114,6 +127,7 @@ Per validator, per node, Keccak-f in 3–4-party Boolean MPC:
 | step | MPC traffic | at 200 Mbps | at 1 Gbps |
 |---|---|---|---|
 | **Registration:** top layer (2¹² real top keys) + proof of possession | 3.4–10 GB | **2–7 min** | 27–82 s |
+| **Registration:** VRF tree, 2²³–2²⁷ real leaves (3–51 years of 12 s slots) | 40 GB–3.9 TB | 27 min–43 h | 5 min–8.6 h |
 | …with the full 2¹⁶ top tree | 55–164 GB | 36–109 min | 7–22 min |
 | **Each bottom tree**, built one ahead | 55–164 GB | **36–109 min** | 7–22 min |
 
@@ -143,7 +157,7 @@ Model and assumptions: [`docs/dkg-and-mpc-costs.md`](docs/dkg-and-mpc-costs.md).
 | stage | what happens | resources (per validator, per node) |
 |---|---|---|
 | Cluster formation | agree config, threshold, operators | as today |
-| Registration (EIP-8450 fork) | MPC builds the top layer, signs a proof of possession; the cluster BLS-signs the registration once | 2–7 min at 200 Mbps |
+| Registration (EIP-8450 or EIP-8483 fork) | MPC builds the top layer and the VRF tree, signs a proof of possession; the cluster BLS-signs the registration (EIP-8450) or hands it to the withdrawal address (EIP-8483) | 2–7 min at 200 Mbps, plus the VRF tree |
 | Dormant period | keys registered, BLS still signs duties; reshare on operator changes | none |
 | Switch fork | MPC builds the first bottom tree; the top key certifies it | 36–109 min at 200 Mbps |
 | Every signature | QBFT → threshold randomness on commits → grind → PRF shares → combine → publish | ~1–2 KiB, ~0.1 s CPU |
@@ -153,16 +167,17 @@ Model and assumptions: [`docs/dkg-and-mpc-costs.md`](docs/dkg-and-mpc-costs.md).
 ## 7. What we ask of Ethereum
 
 EIP-8450 settled our earlier top asks: two-layer keys, threshold-friendly randomness, one key for all duties, and
-replacement without exit. What remains:
+replacement without exit until the switch. What remains:
 
 | | ask | why it matters |
 |---|---|---|
 | 1 | **A much higher maximum effective balance: 2048 → 2¹⁷–2²⁰ ETH** | registrations, registry state, 2.4 KB signatures to aggregate, grinding and DV key generation are all per key; consolidated stake needs 64–512× fewer keys |
-| 2 | **Recommend dense leaf allocation**, and keep the switch fork allocation-agnostic | every bottom tree is an MPC for a DV; fixed per-slot schedules cost up to 128× more |
-| 3 | **State the bottom-tree rule as an outcome**: a top key never certifies two roots | threshold signers have no seed to derive trees from |
-| 4 | **Key-authorized replacement**: a registered key signs its successor | rotation for validators whose withdrawal contract can't make the owner-path request |
-| 5 | **A threshold profile for EIP-8310 keystores** | shares, tables and certification records instead of a seed |
-| 6 | weigh grinding (2²⁰ trials per signature) against verification | it sits after consensus for threshold signers |
+| 2 | **Dense leaf allocation** | every bottom tree is an MPC for a DV; the `pq` branch's 8 leaves per slot cost ~100× more |
+| 3 | **A VRF tree sized for threshold signers**, or a renewable VRF root | every leaf hashes a secret; per-slot leaves for life are terabytes of MPC per validator |
+| 4 | **Key-authorized replacement**: a registered key signs its successor | BLS-authorized changes must stop at the switch; after it, a bad key means an exit |
+| 5 | **State the bottom-tree rule as an outcome**: a top key never certifies two roots | threshold signers have no seed to derive trees from |
+| 6 | **A threshold profile for EIP-8310 keystores** | shares, tables and certification records instead of a seed; separate PQ mnemonics are expected in the derivation ERC |
+| 7 | weigh grinding (2²⁰ trials per signature) against verification | it sits after consensus for threshold signers |
 
 Why two-layer keys make staking more secure:
 - **No forced single point of failure.** Without a threshold-friendly key structure, every post-quantum validator key
@@ -177,18 +192,21 @@ Ranked detail: [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisi
 ![Roadmap](docs/fig/roadmap.svg)
 
 The critical path, registration first:
-1. **charon: BLS-authorized registration.** Sign `PQKeyRegistration` once per validator and broadcast it. Test with
-   dealer keys on devnets.
-2. **Top-layer MPC key generation** and the proof of possession.
-3. **Owner path:** PQ key authorization in withdrawal contracts (on hold).
-4. **Top-layer resharing** across the dormant period.
+1. **Top-layer MPC key generation** and the proof of possession. Test with dealer keys on devnets.
+2. **charon: registration.** Either sign `PQKeyRegistration` once per change epoch (EIP-8450), or hand the 64 bytes
+   and the proof to the withdrawal address (EIP-8483).
+3. **VRF tree:** a shared seed first, MPC once the tree's size is settled.
+4. **Top-layer resharing** across the dormant period, and leanXMSS pre-signed exits for the `pq` design.
 5. **Then, as the switch fork takes shape:** bottom-tree MPC, PRAWNS signing, the leaf allocator, and a threshold
    two-layer security proof. Audit and hardening.
 
 ## 9. Open questions
 
-- **The switch fork's duty cadence:** once per epoch or every slot. It sets the DV's MPC rate by about 16×.
-- **Final parameters:** EIP-8450 is a Draft following an unmerged leanVM branch. Build the MPC parametric in the hash.
+- **The switch fork's duty cadence and leaf map:** once per epoch or every slot, dense or fixed. Together they set the
+  DV's MPC rate by up to ~100×.
+- **Which registry:** EIP-8450 (BLS signing key) or EIP-8483 (withdrawal address).
+- **The VRF tree's size and lifetime:** it sets the registration cost for threshold signers.
+- **Final parameters:** EIP-8450 is a Draft pinned to EthLib's Lean leanXMSS. Build the MPC parametric in the hash.
 - **Real-network MPC throughput:** bits per AND gate for a production 3–4-party protocol. Our range assumes 1–3 bits.
 - **Ceremony UX:** progress, checkpointing and failure handling, and one-shot registration signing.
 
@@ -197,6 +215,8 @@ The critical path, registration first:
 - **Signing: ready.** Non-interactive, cheap, standard output.
 - **Keys: viable and simple** on EIP-8450's two-layer keys: minutes to register, then a background job per bottom tree.
   No single machine ever holds a key, and operator changes keep the validator.
+- **The risk is in the protocol's details, not the cryptography.** Fixed per-slot leaves and a per-slot VRF tree for
+  life would make DVs workable but expensive. Dense allocation and a renewable VRF root keep them cheap.
 - **Distributed validators in post-quantum Ethereum are a *when*, not an *if*.** The key structure is in the EIP; the
   remaining steps are known engineering, a proof, and a few clarifications that help every staker.
 
@@ -205,13 +225,14 @@ The critical path, registration first:
 | | |
 |---|---|
 | [`docs/eip-8450.md`](docs/eip-8450.md) | EIP-8450 read for DVs: issues, opportunities, what to build now, asks |
+| [`docs/pq-fork.md`](docs/pq-fork.md) | EIP-8483 and the consensus-specs `pq` emergency fork read for DVs: leaf allocation, VRF tree, withdrawal-address registration |
 | [`docs/two-layer-keys.md`](docs/two-layer-keys.md) | the two-layer design: options, sizes, security rules, DV design, prior art |
 | [`docs/prawns.md`](docs/prawns.md) | PRAWNS construction, threshold condition, randomness, why key generation needs MPC |
 | [`docs/dkg-and-mpc-costs.md`](docs/dkg-and-mpc-costs.md) | cost model: per-hash MPC costs, key generation, storage, earlier BLAKE2s and Poseidon estimates |
 | [`docs/ethereum-design-decisions.md`](docs/ethereum-design-decisions.md) | ranked asks, maximum balance, equivocation rules, The Extremely Lean Chain |
-| [`docs/alternatives.md`](docs/alternatives.md) | helpers that may only cost liveness, TEE, FHE, Stoffel MPC, Flock |
+| [`docs/alternatives.md`](docs/alternatives.md) | helpers that may only cost liveness, TEE, FHE, Stoffel MPC, Flock, Project Eleven's announced Strongpoint MPC |
 | [`docs/leansig.md`](docs/leansig.md) | leanXMSS and earlier leanSig parameter sets, key generation structure, slot usage |
-| [`tools/`](tools/) | `cost_model.py --primary` (this page's numbers), `--option-b`, `--blake`, `kk_leak.py`, `kk_multitarget.py`, `figs.py` |
+| [`tools/`](tools/) | `cost_model.py --primary` (this page's numbers), `--pq` (fixed allocation, VRF tree), `--option-b`, `--blake`, `kk_leak.py`, `kk_multitarget.py`, `figs.py` |
 | [`doc/`](doc/), [`mpspdz/`](mpspdz/) | prior work (2025): *Towards Threshold Hash-Based Signatures for Post-Quantum Distributed Validators*, with MP-SPDZ benchmarks that calibrate our MPC costs |
 
 ## References
@@ -219,7 +240,10 @@ The critical path, registration first:
 [^prawns]: Boneh, Bünz, Justin D., Litchev, Nazirkhanova. *PRAWNS: Threshold Hash-Based Signatures from Threshold PRFs*. IACR ePrint 2026/2142. <https://eprint.iacr.org/2026/2142>
 [^kk]: Kondi, Kumar. *A Black-Box Impossibility Result for Threshold Signing Standard Hash-Based Signatures*. IACR ePrint 2026/2194. <https://eprint.iacr.org/2026/2194>
 
-Also: *EIP-8450: Post-Quantum Validator Key Registry* <https://eips.ethereum.org/EIPS/eip-8450> · *EIP-8310:
+Also: *EIP-8450: Post-Quantum Consensus Key Registry* <https://eips.ethereum.org/EIPS/eip-8450> · *EIP-8483:
+Post-Quantum Material Registration* (Draft, EIPs PR #12609) · consensus-specs `pq` branch
+<https://github.com/ethereum/consensus-specs/tree/pq/specs/_features/pq> · Project Eleven, *Introducing Strongpoint
+MPC* <https://research.projecteleven.com/articles/introducing-strongpoint-mpc> · *EIP-8310:
 Post-Quantum Keystore for Stateful Keys* <https://eips.ethereum.org/EIPS/eip-8310> · *The Extremely Lean Chain*,
 ethresear.ch, July 2026 <https://ethresear.ch/t/the-extremely-lean-chain/25369> · *Flock: Fast Proving for Batch
 Boolean Computations*, ePrint 2026/1329 <https://eprint.iacr.org/2026/1329> · leanVM (leanXMSS)

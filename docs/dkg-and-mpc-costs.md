@@ -81,6 +81,45 @@ Signature 2,404 B, 186 Keccak-f to verify. Grinding ~2^20 Keccak-f per signature
   - the top range cuts registration 16×;
   - AND-depth falls from 2,520 to 24 per hash.
 
+## 3b. Results: the `pq` branch and the VRF tree
+
+The consensus-specs `pq` branch (an emergency fork on EIP-8483, read in [`pq-fork.md`](pq-fork.md)) fixes leanXMSS
+leaves by slot and adds a per-slot VRF tree. `python3 tools/cost_model.py --pq`:
+
+#### consensus-specs `pq`: leaf allocation, per validator, per node (12 s slots)
+
+Slot-indexed duties use leaf `base + 8 * slot + offset`, so one bottom tree covers 8,192 slots (27.3 h). Any slot may bring a duty and assignments are known about an epoch ahead, so every window needs its tree. Unused offsets can be filler.
+
+| allocation | real one-time keys per tree | MPC per tree | average MPC load | validators per node on half of 200 Mbps |
+|---|---|---|---|---|
+| pq (Gasper), slot duties | 40,960 | 34 GB–103 GB | 2.8–8.4 Mbps | 12–36 |
+| pq-dc (decoupled consensus), slot duties | 49,152 | 41 GB–123 GB | 3.3–10.0 Mbps | 10–30 |
+| attestations (one leaf per target epoch) | 65,536 | 55 GB–164 GB | 0.02–0.05 Mbps, one tree per 291.3 d | 1,916–5,747 |
+
+Top layer: one top key per window, so 34 years of slot duties need ~10,915 real top keys (not 2^12): 9 GB–27 GB at registration, 6 min–18 min at 200 Mbps.
+
+#### VRF tree: one secret per slot (consensus-specs `pq`, depth 31), per validator, per node
+
+Leaves outside the slots a validator will ever use (before the fork, beyond its horizon) can be random filler: they are never opened. Only real leaves cost MPC.
+
+| real leaves | covers (12 s slots) | Keccak-f in MPC per leaf | MPC traffic | at 200 Mbps | at 1 Gbps |
+|---|---|---|---|---|---|
+| 2^31 | 817 years | 1 | 10.3 TB–30.9 TB | 4.8 d–14.3 d | 22.9 h–68.7 h |
+| 2^31 | 817 years | 2 | 20.6 TB–61.8 TB | 9.5 d–28.6 d | 45.8 h–5.7 d |
+| 2^27 | 51 years | 1 | 644 GB–1.9 TB | 7.2 h–21.5 h | 86 min–4.3 h |
+| 2^27 | 51 years | 2 | 1.3 TB–3.9 TB | 14.3 h–42.9 h | 2.9 h–8.6 h |
+| 2^26 | 26 years | 1 | 322 GB–966 GB | 3.6 h–10.7 h | 43 min–2.1 h |
+| 2^26 | 26 years | 2 | 644 GB–1.9 TB | 7.2 h–21.5 h | 86 min–4.3 h |
+| 2^23 | 3 years | 1 | 40 GB–121 GB | 27 min–81 min | 5 min–16 min |
+| 2^23 | 3 years | 2 | 81 GB–242 GB | 54 min–2.7 h | 11 min–32 min |
+
+For scale, one leanXMSS bottom tree is 55–164 GB. Without MPC (every operator holds the VRF seed), the full tree is 2^32 Keccak-f: about an hour on one core.
+
+- **Fixed allocation is the cost to fix.** Slot duties need a tree every 27 hours whatever the validator's duties,
+  about 100× the dense rate.
+- **The VRF tree is a one-off, but large.** Its MPC cost is set by how many years of leaves are real. Sharing the VRF
+  seed among operators avoids MPC entirely, at the cost of any one operator being able to predict the openings.
+
 ## 4. Earlier results: single-layer keys, BLAKE2s (superseded)
 
 Ethereum's direction is a classic hash proven with fast batch provers (e.g. Flock), so key generation becomes a
@@ -244,5 +283,7 @@ consolidate, or stagger rotations across the year.
 - **BLAKE2s AND counts** are our own circuit estimates (ripple vs prefix adders). Published circuits may differ by a
   small factor.
 - **`F_lat` DKG.** Rounding inside MPC is extra and not modelled.
-- **Parameters can still move.** EIP-8450 is a Draft whose parameters follow an unmerged leanVM branch (see
-  [`leansig.md`](leansig.md)).
+- **Parameters can still move.** EIP-8450 is a Draft. It pins leanXMSS to EthLib's Lean implementation at a fixed
+  commit, and the competing EIP-8483 and `pq` branch change leaf allocation (see [`leansig.md`](leansig.md),
+  [`pq-fork.md`](pq-fork.md)).
+- **VRF leaves** cost one Keccak-f each in MPC, two if secrets are derived from a Shamir-shared seed in MPC.

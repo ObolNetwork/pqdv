@@ -5,22 +5,24 @@ Ranked by impact on whether threshold leanXMSS (PRAWNS signing plus MPC key gene
 ## Ranked list
 
 [EIP-8450](eip-8450.md) (October 2026) settles the top of our earlier list: two-layer keys, one key for all duties, a
-classic hash, signer-chosen leaf indices and replacement without exit. What remains, ranked:
+classic hash, signer-chosen leaf indices and replacement without exit. The consensus-specs `pq` branch and EIP-8483
+([`pq-fork.md`](pq-fork.md)) reopen some of it. What remains, ranked (state as of 24 November 2026):
 
 | # | Priority | Decision | Why it matters | Current state (Oct 2026) |
 |---|---|---|---|---|
 | 1 | **Top ask** | **A much higher maximum effective balance: 2048 → 2¹⁷–2²⁰ ETH** | Every post-quantum cost is per key, not per ETH: registrations, registry state, 2.4 KB signatures to aggregate, grinding, and for DVs the MPC. Consolidated stake needs 64–512× fewer keys | 2048 ETH |
-| 2 | **Ask** | **Recommend dense leaf allocation; keep the switch fork allocation-agnostic** | Every bottom tree is an MPC for a DV. Dense allocation (synchronized attestations, counter ranges for other duties) needs one tree per 2¹⁶ signatures; a fixed schedule of 8 leaves per slot costs up to **128×** more | EIP-8450 allows both, and gives fixed allocation with *k* = 8 as an example |
-| 3 | **Ask** | **State the bottom-tree rule as an outcome**: a top key never certifies two roots, and the signer records a certification before releasing signatures from the tree | Threshold signers have no seed to derive bottom trees from | EIP-8450: "MUST be derived deterministically from the seed" |
-| 4 | **Ask** | **Key-authorized replacement**: the registered key signs its successor at a reserved leaf | Post-quantum rotation for validators whose withdrawal contract can't make the owner-path request, plus operator changes and version migrations | replacement only through the withdrawal address |
-| 5 | **Ask** | **A threshold profile for EIP-8310 keystores** | Shares, public tables and certification records instead of a seed | EIP-8310 stores a seed |
-| 6 | Helps | **Weigh grinding against verification** when the duty cadence is fixed | 2²⁰ trials per signature (0.1–0.4 s CPU) sit after consensus for threshold signers, and add up with per-slot attesting | ~2²⁰ trials |
-| 7 | Principle | **Keep staking in groups an explicit design goal** | Keeps every other choice compatible by default | DVs named in EIP-8450's rationale; leanXMSS sketches a threshold signer |
+| 2 | **Ask** | **Dense leaf allocation** | Every bottom tree is an MPC for a DV. Dense allocation (one leaf per attestation epoch, counter ranges for other duties) needs one tree per 2¹⁶ signatures; a fixed schedule of 8 leaves per slot costs up to **128×** more | EIP-8450 allows both; the `pq` branch fixes 8 leaves per slot for every duty but attestations |
+| 3 | **Ask** | **Size the VRF tree, or let its root be renewed** | Every VRF leaf hashes a secret, so a threshold-built tree is MPC per leaf: 0.6–3.9 TB per validator for 51 years of per-slot leaves. Sharing the seed avoids MPC but lets any operator predict openings | EIP-8450 and EIP-8483 register a root of unspecified size; `pq`: depth 31, one leaf per slot, root frozen from the fork |
+| 4 | **Ask** | **Key-authorized replacement**: the registered key signs its successor at a reserved leaf | BLS-authorized changes must stop at the switch; after it, a key or VRF tree that needs replacing means an exit | EIP-8450: BLS-authorized changes until the switch; EIP-8483: withdrawal address only |
+| 5 | **Ask** | **State the bottom-tree rule as an outcome**: a top key never certifies two roots, and the signer records a certification before releasing signatures from the tree | Threshold signers have no seed to derive bottom trees from | no rule in EIP-8450 now; EthLib derives every secret from one seed |
+| 6 | **Ask** | **A threshold profile for EIP-8310 keystores** | Shares, public tables and certification records instead of a seed | EIP-8310 stores a seed; the draft derivation ERC (ERCs#2214) is expected to allow a PQ mnemonic separate from the BLS one |
+| 7 | Helps | **Weigh grinding against verification** when the duty cadence is fixed | 2²⁰ trials per signature (0.1–0.4 s CPU) sit after consensus for threshold signers, and add up with per-slot attesting | ~2²⁰ trials |
+| 8 | Principle | **Keep staking in groups an explicit design goal** | Keeps every other choice compatible by default | DVs named in EIP-8450's October draft; leanVM's leanXMSS write-up sketches a threshold signer |
 | — | ✅ settled | Two-layer keys (2¹⁶ × 2¹⁶) | Bounds every MPC to 2¹⁶ one-time keys | EIP-8450 |
 | — | ✅ settled | Threshold-derived randomness, ρ = threshold-PRF(key, message) + i | Grinding becomes public; shares ride on QBFT commits | leanXMSS threshold sketch; "not consensus-critical" |
 | — | ✅ settled | One key for all duties, signer-chosen leaves | Replaces the attestation/proposal key pair: halves DV key generation | EIP-8450 |
 | — | ✅ settled | Classic hash, standard signature format | Keccak-f has AND-depth 24, so DV key generation is a few dozen MPC rounds | Keccak-256 |
-| — | ✅ settled | Replacement without exit | Bad keys and migrations don't force exits | owner path |
+| — | ✅ until the switch | Replacement without exit | Bad keys and migrations don't force exits | EIP-8450: BLS-authorized changes, one per 256 epochs |
 | — | dropped | Certified windows ("option B") | Same MPC as the stateless form; only signature size differs | EIP-8450 chose stateless: +944 B per signature, no per-block certifications |
 
 ## Two-layer validator keys
@@ -35,8 +37,8 @@ Post-quantum signatures make every validator key expensive, for everyone. Under 
 
 | cost | per key | at a million keys |
 |---|---|---|
-| Registration on-chain | 2,541 B, capped at 8 per block | ~17 days of full blocks |
-| Registry state | 33 B | 33 MB |
+| Registration on-chain | 2,580 B, capped at 8 per block | ~17 days of full blocks |
+| Registry state | 72 B | 72 MB |
 | Each signature to aggregate | 2,404 B, 186 Keccak-f to prove | 2.4 GB of signatures per attestation round |
 | Signing | ~2²⁰ Keccak-f of grinding | |
 | DV key generation | 55–164 GB of MPC per bottom tree, per node | |

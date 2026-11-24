@@ -11,7 +11,7 @@ SOURCES = {
     "leanSig set B (draft spec)": "leanVM doc/xmss + crates/xmss: 42 chains, chain length 8 (7 steps), BLAKE2s, ~2^14.85 grinding",
     "lean slots": "leanSpec forks/lstar/config.py: 4 s slots, 5 intervals of 800 ms; attest at interval 1, aggregate at interval 2",
     "keys per validator": "leanSpec containers/validator.py: attestation key + proposal key",
-    "leanXMSS (EIP-8450)": "EIP-8450 + leanVM doc/lean_xmss (Keccak branch): two layers of height 16, 58 chains of "
+    "leanXMSS (EIP-8450)": "EIP-8450 + EthLib Cryptography/Xmss @6390c73 (earlier: leanVM doc/lean_xmss, Keccak branch): two layers of height 16, 58 chains of "
                            "positions 0..3, target sum 106, Keccak-256 truncated to 16 B, 2,404 B signatures, "
                            "186 permutations to verify, ~2^20 grinding trials per signature",
     "pqdv calibration": "pqdv doc/5_benchmarks.tex (MP-SPDZ, 5 parties): malicious Shamir 118.28 GB / 7.51e8 triples, "
@@ -300,8 +300,75 @@ def eip8450():
           f"{MEASURED_GRIND_S[0]:.2f} s on 1 core, {MEASURED_GRIND_S[1]:.2f} s on 5 cores (Go crypto/sha3, arm64).\n")
 
 
+# ---- VRF TREE (EIP-8450 / EIP-8483 VRF root; consensus-specs `pq` branch, VRF_TREE_DEPTH = 31) ----------------
+# Leaf = keccak256("VRF_LEAF" || secret || index): 48 bytes, one Keccak-f permutation. Inner nodes hash public
+# leaves, so they run in the clear. In MPC, a leaf costs 1 permutation if the secret is a local threshold-PRF term,
+# or 2 if the secret is derived as in the spec (keccak256(domain || vrf_seed || index)) from a Shamir-shared seed,
+# which keeps the seed reshareable on operator changes.
+VRF_DEPTH_PQ = 31
+SLOT_S_GASPER = 12
+
+
+def vrf_gb(leaves, perms_per_leaf):
+    return [leaves * perms_per_leaf * KECCAK_AND * b / 8 for b in ASSUME_BITS_PER_AND_3PC]
+
+
+def vrf():
+    print("## VRF tree: one secret per slot (consensus-specs `pq`, depth 31), per validator, per node\n")
+    print("Leaves outside the slots a validator will ever use (before the fork, beyond its horizon) can be random "
+          "filler: they are never opened. Only real leaves cost MPC.\n")
+    print("| real leaves | covers (12 s slots) | Keccak-f in MPC per leaf | MPC traffic | at 200 Mbps | at 1 Gbps |")
+    print("|---|---|---|---|---|---|")
+    for exp in (VRF_DEPTH_PQ, 27, 26, 23):
+        leaves = 2 ** exp
+        years = leaves * SLOT_S_GASPER / (365.25 * 86400)
+        for k in (1, 2):
+            lo, hi = vrf_gb(leaves, k)
+            print(f"| 2^{exp} | {years:,.0f} years | {k} | {fmt_b(lo)}–{fmt_b(hi)} | " +
+                  " | ".join(f"{fmt_t(lo / bw)}–{fmt_t(hi / bw)}" for bw in LINKS.values()) + " |")
+    print("\nFor scale, one leanXMSS bottom tree is 55–164 GB. Without MPC (every operator holds the VRF seed), the "
+          f"full tree is 2^{VRF_DEPTH_PQ + 1} Keccak-f: about an hour on one core.\n")
+
+
+# ---- consensus-specs `pq` branch: fixed per-slot leaf allocation -------------------------------------------------
+PQ_LEAVES_PER_SLOT = 8
+PQ_OFFSETS_USED = {"pq (Gasper)": 5, "pq-dc (decoupled consensus)": 6}  # offsets a validator signs at
+
+
+def pq_fork():
+    window_slots = 2 ** XMSS_H // PQ_LEAVES_PER_SLOT
+    window_s = window_slots * SLOT_S_GASPER
+    tree = gb(TREE_OTS)
+    print("## consensus-specs `pq`: leaf allocation, per validator, per node (12 s slots)\n")
+    print(f"Slot-indexed duties use leaf `base + 8 * slot + offset`, so one bottom tree covers {window_slots:,} slots "
+          f"({fmt_t(window_s)}). Any slot may bring a duty and assignments are known about an epoch ahead, so every "
+          "window needs its tree. Unused offsets can be filler.\n")
+    print("| allocation | real one-time keys per tree | MPC per tree | average MPC load | validators per node on half of 200 Mbps |")
+    print("|---|---|---|---|---|")
+    for label, used in PQ_OFFSETS_USED.items():
+        frac = used / PQ_LEAVES_PER_SLOT
+        lo, hi = (x * frac for x in tree)
+        mbps = [x * 8 / window_s / 1e6 for x in (lo, hi)]
+        print(f"| {label}, slot duties | {int(TREE_OTS * frac):,} | {fmt_b(lo)}–{fmt_b(hi)} | "
+              f"{mbps[0]:.1f}–{mbps[1]:.1f} Mbps | {100 / mbps[1]:.0f}–{100 / mbps[0]:.0f} |")
+    att_s = TREE_OTS * 32 * SLOT_S_GASPER
+    mbps = [x * 8 / att_s / 1e6 for x in tree]
+    print(f"| attestations (one leaf per target epoch) | {TREE_OTS:,} | {fmt_b(tree[0])}–{fmt_b(tree[1])} | "
+          f"{mbps[0]:.2f}–{mbps[1]:.2f} Mbps, one tree per {fmt_t(att_s)} | {100 / mbps[1]:,.0f}–{100 / mbps[0]:,.0f} |")
+    years = 34
+    top = years * 365.25 * 86400 / window_s
+    lo, hi = gb(top)
+    print(f"\nTop layer: one top key per window, so {years} years of slot duties need ~{top:,.0f} real top keys "
+          f"(not 2^12): {fmt_b(lo)}–{fmt_b(hi)} at registration, "
+          f"{fmt_t(lo / LINKS['200 Mbps'])}–{fmt_t(hi / LINKS['200 Mbps'])} at 200 Mbps.\n")
+
+
 if __name__ == "__main__" and "--primary" in __import__("sys").argv:
     eip8450()
+
+if __name__ == "__main__" and "--pq" in __import__("sys").argv:
+    pq_fork()
+    vrf()
 
 if __name__ == "__main__" and "--option-b" in __import__("sys").argv:
     option_b()
@@ -314,7 +381,7 @@ if __name__ == "__main__" and "--blake" in __import__("sys").argv:
     two_layer()
 
 
-if __name__ == "__main__" and not ({"--blake", "--primary", "--option-b"} & set(__import__("sys").argv)):
+if __name__ == "__main__" and not ({"--blake", "--primary", "--option-b", "--pq"} & set(__import__("sys").argv)):
     hash_table()
     dkg_table()
     dkg_table(42 * 7, "set B chain count (if it stayed Poseidon)")
